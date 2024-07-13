@@ -4,10 +4,9 @@ import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import SignInScreen from './components/start';
-import LoginScreen from './components/Signup';
+// import LoginScreen from './components/Signup';
 import LoginScreen2 from './components/login';
 import LoginScreen1 from './components/Home';
-import SignUpScreen from './components/Signup';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -21,7 +20,7 @@ export default function App() {
         />
         <Stack.Screen
           name="Login1"
-          component={LoginScreen}
+          component={LoginScreen2}
           options={{ headerShown: false  }}
           />
         <Stack.Screen
@@ -34,11 +33,11 @@ export default function App() {
         component={LoginScreen1} 
         options={{ headerShown: false  }}
         />
-         <Stack.Screen
+         {/* <Stack.Screen
         name="SignUp"
         component={SignUpScreen} 
         options={{ headerShown: false  }}
-        />
+        /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -16,7 +16,7 @@ const SignInScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Appbar.Header style={styles.signin}>
+      <Appbar.Header style={styles.appbar}>
         <Appbar.Content title="Sign In" style={styles.signin1} />
       </Appbar.Header>
       <View style={styles.contentContainer}>
@@ -47,11 +47,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  signin: {
-    backgroundColor: '#2596be',
-    marginTop:1,
+  appbar: {
+    backgroundColor: '#3498DB', // Replace with desired color
+    height: 60, // Adjust height as needed
+    elevation: 4, // Add elevation for shadow
   },
   signin1: {
+    flex: 1,
+    fontSize: 30,
     color: '#fff',
   },
   contentContainer: {

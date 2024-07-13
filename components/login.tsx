@@ -13,6 +13,7 @@ import { initializeApp } from "firebase/app";
 import {
   getAuth,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 
 import { firebaseConfig } from "../config"; // Ensure the correct path to your config file
@@ -41,8 +42,22 @@ const LoginScreen2 = ({ navigation }) => {
       }
     } else {
       Alert.alert("Error", "Please enter both email and password");
-    }
+    };
   };
+
+    const handleForgotPassword = async () => {
+      if (email) {
+        try {
+          await sendPasswordResetEmail(auth, email);
+          Alert.alert("Success", "Password reset email sent!");
+        } catch (error) {
+          console.error("Error sending password reset email:", error);
+          Alert.alert("Error", "Failed to send password reset email. Please try again.");
+        }
+      } else {
+        Alert.alert("Error", "Please enter your email");
+      }
+    };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,10 +90,10 @@ const LoginScreen2 = ({ navigation }) => {
         {isLoading && <Text style={styles.loadingText}>Loading...</Text>}
       </View>
       <TouchableOpacity
-        onPress={() => navigation.navigate('SignUp')}
-        style={styles.signupRedirect}
+          onPress={handleForgotPassword}
+          style={styles.signupRedirect}
       >
-        <Text style={styles.signupRedirectText}>Don't have an account? Sign Up</Text>
+        <Text style={styles.signupRedirectText}>Forgot Password? Don't worry </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
