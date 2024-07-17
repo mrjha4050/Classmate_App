@@ -71,6 +71,7 @@ const LoginScreen2 = ({ navigation }) => {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoComplete="email"
         />
         <Text style={styles.label}>Password</Text>
         <TextInput
@@ -79,6 +80,7 @@ const LoginScreen2 = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          autoComplete="password"
         />
         <TouchableOpacity
           style={styles.button}
