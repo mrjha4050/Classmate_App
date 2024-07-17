@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, Text, TouchableOpacity, Modal, TextInput, Button } from 'react-native';
-import { Appbar, FAB, List, Chip, Avatar } from 'react-native-paper';
 
 const initialNotices = [
   { id: '1', title: 'Discuss about the new feature to add jobdesk® web application', author: 'Sabir Hossain', date: '04 June, 2022', tags: ['Feature', 'New', 'Web App'] },
