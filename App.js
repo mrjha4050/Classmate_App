@@ -8,6 +8,7 @@ import LoginScreen2 from './components/login';
 import HomeScreen from './components/Home'; 
 import NoticePage from './screens/NoticePage';
 import AttendanceScreen from './screens/AttendanceScreen';
+import ProfileScreen from './screens/ProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -26,14 +27,8 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Login"
-          component={LoginScreen2}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="Home"
           component={HomeScreen}
-          initialParams={{ username: 'John Doe' }} // Pass default username
           options={{ headerShown: false }}
         /> 
          <Stack.Screen
@@ -41,10 +36,15 @@ export default function App() {
           component={NoticePage}
           options={{ title: 'Notices' }}
         />
-        <Stack.Screen
+          <Stack.Screen
           name="AttendanceScreen"
           component={AttendanceScreen}
           options={{ title: 'Attendance' }}
+        />
+        <Stack.Screen
+          name="ProfileScreen"
+          component={ProfileScreen}
+          options={{ title: 'Profile' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

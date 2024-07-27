@@ -2,11 +2,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const AttendanceScreen: React.FC = () => {
+const AttendanceScreen = () => {
   return (
     <View style={styles.container}>
       <Text>Attendance Screen</Text>
       <Text>Coming Soon!</Text>
+      
     </View>
   );
 };

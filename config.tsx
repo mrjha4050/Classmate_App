@@ -1,22 +1,20 @@
-import { firebase } from "@react-native-firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore"; 
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyCN_94lAR_CrUZYKuXin-yt7DQGvweH-w0",
-  authDomain: "e-campus-35bfd.firebaseapp.com",
-  projectId: "e-campus-35bfd",
-  storageBucket: "e-campus-35bfd.appspot.com",
-  messagingSenderId: "115118007945",
-  appId: "1:115118007945:web:96bd5995a1d0c9fd988858",
-  measurementId: "G-M3JCVHJRXT"
+  apiKey: "AIzaSyAQt3wC9b3D11kTpYxAQ5tLTSxjRbuTyxE",
+  authDomain: "campusconnect-a9fd9.firebaseapp.com",
+  projectId: "campusconnect-a9fd9",
+  storageBucket: "campusconnect-a9fd9.appspot.com",
+  messagingSenderId: "856272800171",
+  appId: "1:856272800171:web:d18054d53ef7ecb778eaee",
+  measurementId: "G-G9MDK6QHKZ"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export { db , app}
-
+export { db };
 
 // if (!firebase.apps.length) {
 //   firebase.initializeApp(firebaseConfig);

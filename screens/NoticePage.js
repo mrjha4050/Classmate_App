@@ -35,25 +35,20 @@ const NoticeBoard = ({ navigation }) => {
           <View style={styles.noticeCard}>
             <Text style={styles.noticeTitle} placeholder="Title">{item.title}</Text>
             <View style={styles.noticeInfo}>
-              <Avatar.Icon size={24} icon="account" />
               <Text style={styles.noticeAuthor} placeholder="Author" >{item.author}</Text>
-              <Avatar.Icon size={24} icon="calendar" />
               <Text style={styles.noticeDate}>{item.date}</Text>
             </View>
             <View style={styles.noticeTags}>
-              {item.tags.map((tag, index) => (
-                <Chip key={index} style={styles.noticeTag}>{tag}</Chip>
-              ))}
             </View>
           </View>
         )}
       />
 
-      <FAB
+      {/* <FAB
         style={styles.fab}
         icon="plus"
         onPress={handleAddNotice}
-      />
+      /> */}
 
       <Modal
         visible={isModalVisible}
