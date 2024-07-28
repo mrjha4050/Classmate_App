@@ -1,14 +1,16 @@
 // App.js
 
-import * as React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import SignInScreen from './components/start';
-import LoginScreen2 from './components/login';
-import HomeScreen from './components/Home'; 
-import NoticePage from './screens/NoticePage';
-import AttendanceScreen from './screens/AttendanceScreen';
-import ProfileScreen from './screens/ProfileScreen';
+import * as React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import SignInScreen from "./components/start";
+import LoginScreen2 from "./components/login";
+import HomeScreen from "./components/Home";
+import NoticePage from "./screens/NoticePage";
+import AttendanceScreen from "./screens/AttendanceScreen";
+import ProfileScreen from "./screens/ProfileScreen";
+import CreateNoticeScreen from "./screens/CreateNoticeScreen";
+import NoticeDetail from "./screens/NoticeDetail";
 
 const Stack = createStackNavigator();
 
@@ -30,22 +32,28 @@ export default function App() {
           name="Home"
           component={HomeScreen}
           options={{ headerShown: false }}
-        /> 
-         <Stack.Screen
+        />
+        <Stack.Screen
           name="NoticePage"
           component={NoticePage}
-          options={{ title: 'Notices' }}
+          options={{ title: "Notices" }}
         />
-          <Stack.Screen
+        <Stack.Screen
           name="AttendanceScreen"
           component={AttendanceScreen}
-          options={{ title: 'Attendance' }}
+          options={{ title: "Attendance" }}
         />
         <Stack.Screen
           name="ProfileScreen"
           component={ProfileScreen}
-          options={{ title: 'Profile' }}
+          // options={{ title: 'Profile' }}
         />
+        <Stack.Screen
+          name="CreateNoticeScreen"
+          component={CreateNoticeScreen}
+          options={{ title: "CreateNoticeScreen" }}
+        />
+        <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
       </Stack.Navigator>
     </NavigationContainer>
   );

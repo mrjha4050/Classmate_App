@@ -1,170 +1,196 @@
-import React, { useState } from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity, Modal, TextInput, Button } from 'react-native';
+// src/screens/NoticesScreen.js
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { db } from '../config'; // Make sure you have Firebase configured
 
-const initialNotices = [
-  { id: '1', title: 'Discuss about the new feature to add jobdesk® web application', author: 'Sabir Hossain', date: '04 June, 2022', tags: ['Feature', 'New', 'Web App'] },
-];
+const NoticesScreen = () => {
+  const [notices, setNotices] = useState([]);
+  const [filteredNotices, setFilteredNotices] = useState([]);
+  const [filter, setFilter] = useState('All');
+  const navigation = useNavigation();
 
-const NoticeBoard = ({ navigation }) => {
-  const [notices, setNotices] = useState(initialNotices);
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [newNotice, setNewNotice] = useState({ title: '', author: '', date: '', tags: [] });
-  const [newTag, setNewTag] = useState('');
+  useEffect(() => {
+    const fetchNotices = async () => {
+      const noticesCollection = collection(db, 'notices');
+      const noticesSnapshot = await getDocs(noticesCollection);
+      const noticesList = noticesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setNotices(noticesList);
+      setFilteredNotices(noticesList); // Initialize with all notices
+    };
 
-  const handleAddNotice = () => {
-    setModalVisible(true);
-  };
+    fetchNotices();
+  }, []);
 
-  const handleSaveNotice = () => {
-    setNotices([...notices, { ...newNotice, id: (notices.length + 1).toString() }]);
-    setModalVisible(false);
-    setNewNotice({ title: '', author: '', date: '', tags: [] });
-  };
-
-  const handleAddTag = () => {
-    setNewNotice({ ...newNotice, tags: [...newNotice.tags, newTag] });
-    setNewTag('');
+  const filterNotices = (tag) => {
+    setFilter(tag);
+    if (tag === 'All') {
+      setFilteredNotices(notices);
+    } else {
+      const filtered = notices.filter(notice => notice.tag === tag);
+      setFilteredNotices(filtered);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={notices}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.noticeCard}>
-            <Text style={styles.noticeTitle} placeholder="Title">{item.title}</Text>
-            <View style={styles.noticeInfo}>
-              <Text style={styles.noticeAuthor} placeholder="Author" >{item.author}</Text>
-              <Text style={styles.noticeDate}>{item.date}</Text>
-            </View>
-            <View style={styles.noticeTags}>
-            </View>
-          </View>
-        )}
-      />
-
-      {/* <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={handleAddNotice}
+    <SafeAreaView style={styles.container}>
+      {/* <View style={styles.header}>
+        <Text style={styles.title}>CollegeManager</Text>
+      </View>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search notices..."
       /> */}
-
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'All' && styles.filterButtonActive]}
+          onPress={() => filterNotices('All')}
+        >
+          <Text style={[styles.filterText, filter === 'All' && styles.filterTextActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'Announcement' && styles.filterButtonActive]}
+          onPress={() => filterNotices('Announcement')}
+        >
+          <Text style={[styles.filterText, filter === 'Announcement' && styles.filterTextActive]}>Announcements</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'Event' && styles.filterButtonActive]}
+          onPress={() => filterNotices('Event')}
+        >
+          <Text style={[styles.filterText, filter === 'Event' && styles.filterTextActive]}>Events</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView contentContainerStyle={styles.noticesContainer}>
+        {filteredNotices.map(notice => (
+          <View key={notice.id} style={styles.noticeCard}>
+            <Text style={styles.noticeTitle}>{notice.title}</Text>
+            <Text style={styles.noticeDate}>Date: {new Date(notice.date).toLocaleString()}</Text>
+            <Text style={styles.noticeTeacher}>Teacher: {notice.teacher}</Text>
+            <Text style={styles.noticeContent}>{notice.content}</Text>
+            <TouchableOpacity style={styles.markAsReadButton}>
+              <Text style={styles.markAsReadText}>Mark as Read</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => navigation.navigate('CreateNoticeScreen')}
       >
-        <View style={styles.modalContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Title"
-            value={newNotice.title}
-            onChangeText={(text) => setNewNotice({ ...newNotice, title: text })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Author"
-            value={newNotice.author}
-            onChangeText={(text) => setNewNotice({ ...newNotice, author: text })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Date"
-            value={newNotice.date}
-            onChangeText={(text) => setNewNotice({ ...newNotice, date: text })}
-          />
-          <View style={styles.tagsInputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Add Tag"
-              value={newTag}
-              onChangeText={(text) => setNewTag(text)}
-            />
-            <Button title="Add Tag" onPress={handleAddTag} />
-          </View>
-          <View style={styles.noticeTags}>
-            {newNotice.tags.map((tag, index) => (
-              <Chip key={index} style={styles.noticeTag}>{tag}</Chip>
-            ))}
-          </View>
-          <Button title="Save Notice" onPress={handleSaveNotice} />
-          <Button title="Cancel" onPress={() => setModalVisible(false)} />
-        </View>
-      </Modal>
-    </View>
+        <Text style={styles.createButtonText}>Create Notice</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    alignItems: 'center', // Center the header text horizontally
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  searchInput: {
+    backgroundColor: '#fff',
+    padding: 10,
+    margin: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  filterButton: {
+    backgroundColor: '#ddd',
+    padding: 10,
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  filterButtonActive: {
+    backgroundColor: '#4CAF50',
+  },
+  filterText: {
+    color: '#555',
+  },
+  filterTextActive: {
+    color: '#fff',
+  },
+  noticesContainer: {
+    padding: 10,
   },
   noticeCard: {
     backgroundColor: '#fff',
     padding: 15,
-    marginVertical: 10,
-    marginHorizontal: 20,
     borderRadius: 10,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
   noticeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  noticeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  noticeAuthor: {
-    marginLeft: 5,
-    marginRight: 15,
-    fontSize: 14,
-    color: '#6c757d',
   },
   noticeDate: {
-    marginLeft: 5,
     fontSize: 14,
-    color: '#6c757d',
+    color: '#888',
+    marginVertical: 5,
   },
-  noticeTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  noticeTeacher: {
+    fontSize: 14,
+    color: '#888',
+    marginVertical: 5,
   },
-  noticeTag: {
-    marginRight: 5,
-    marginBottom: 5,
+  noticeContent: {
+    fontSize: 14,
+    color: '#555',
   },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  tagsInputContainer: {
-    flexDirection: 'row',
+  markAsReadButton: {
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
     alignItems: 'center',
+  },
+  markAsReadText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  createButton: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 10,
+    margin: 10,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
-export default NoticeBoard;
+export default NoticesScreen;
