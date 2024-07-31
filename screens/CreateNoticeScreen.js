@@ -28,6 +28,7 @@ const CreateNoticeScreen = ({ navigation }) => {
           content,
           teacher, // Save teacher's name
           tag,
+          readBy: [] 
         });
         Alert.alert('Success', 'Notice created successfully!');
         navigation.goBack();

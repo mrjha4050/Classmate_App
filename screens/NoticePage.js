@@ -18,6 +18,8 @@ const NoticesScreen = () => {
   const [filteredNotices, setFilteredNotices] = useState([]);
   const [filter, setFilter] = useState('All');
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext); // Get the current user
+
 
   useEffect(() => {
     const fetchNotices = async () => {
@@ -31,15 +33,27 @@ const NoticesScreen = () => {
     fetchNotices();
   }, []);
 
-  const filterNotices = (tag) => {
-    setFilter(tag);
-    if (tag === 'All') {
-      setFilteredNotices(notices);
-    } else {
-      const filtered = notices.filter(notice => notice.tag === tag);
-      setFilteredNotices(filtered);
+  const filterNoticesByTagAndUser = (noticesList, tag) => {
+    const filtered = noticesList.filter(notice =>
+      (tag === 'All' || notice.tag === tag) && !notice.readBy.includes(user.uid)
+    );
+    setFilteredNotices(filtered);
+  };
+
+  const handleMarkAsRead = async (noticeId) => {
+    try {
+      const noticeRef = doc(db, 'notices', noticeId);
+      await updateDoc(noticeRef, {
+        readBy: [...notices.find(notice => notice.id === noticeId).readBy, user.uid]
+      });
+      // Update local state
+      setNotices(notices.map(notice => notice.id === noticeId ? { ...notice, readBy: [...notice.readBy, user.uid] } : notice));
+      filterNoticesByTagAndUser(notices, filter);
+    } catch (error) {
+      console.error('Error marking notice as read: ', error);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>

@@ -85,7 +85,7 @@ const HomeScreen = ({ route }) => {
        }>
 
        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Notifications</Text>
+          <Text style={styles.sectionTitle}>Recent Notifications</Text>
           {notices.map((notice) => (
             <TouchableOpacity
               key={notice.id}
@@ -105,8 +105,9 @@ const HomeScreen = ({ route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Links</Text>
           <View style={styles.quickLinks}>
-            <TouchableOpacity style={styles.quickLinkButton}>
-              <Text style={styles.quickLinkText}>Library</Text>
+            <TouchableOpacity style={styles.quickLinkButton}
+            onPress={() => navigation.navigate('NoticePage')}>
+              <Text style={styles.quickLinkText}>NoticePage</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
@@ -116,23 +117,23 @@ const HomeScreen = ({ route }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('AttendanceScreen')}
+              onPress={() => navigation.navigate('TimeTableForm')}
             >
-              <Text style={styles.quickLinkText}>Attendance</Text>
+              <Text style={styles.quickLinkText}>TimeTableForm</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('ProfileScreen')}
+              onPress={() => navigation.navigate('TimeTableScreen')}
             >
-              <Text style={styles.quickLinkText}>Profile</Text>
+              <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personalized Widgets</Text>
+          <Text style={styles.sectionTitle}>Upcoming Lectures</Text>
           <View style={styles.card}>
-            <Text style={styles.cardText}>Assigned Homework</Text>
+            <Text style={styles.cardText}>Enterprise Java </Text>
             <Text style={styles.cardText}>3 new assignments</Text>
             <MaterialIcons name="assignment" size={24} color="black" />
           </View>
