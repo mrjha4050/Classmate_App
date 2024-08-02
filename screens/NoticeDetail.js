@@ -8,6 +8,7 @@ const NoticeDetail = ({ route }) => {
     <View style={styles.container}>
       <Text style={styles.title}>{notice.title}</Text>
       <Text style={styles.date}>{new Date(notice.date).toLocaleString()}</Text>
+      <Text style={styles.date}>{notice.teacher}</Text>
       <Text style={styles.content}>{notice.content}</Text>
     </View>
   );

@@ -64,6 +64,7 @@ const HomeScreen = ({ route }) => {
     await fetchNotices();
     setRefreshing(false);
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -117,15 +118,15 @@ const HomeScreen = ({ route }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('TimeTableForm')}
+              onPress={() => navigation.navigate('ProfileScreen')}
             >
-              <Text style={styles.quickLinkText}>TimeTableForm</Text>
+              <Text style={styles.quickLinkText}>Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('TimeTableScreen')}
+              onPress={() => navigation.navigate('TeacherProfile')}
             >
-              <Text style={styles.quickLinkText}>TimeTable</Text>
+              <Text style={styles.quickLinkText}>TeacherProfile</Text>
             </TouchableOpacity>
           </View>
         </View>

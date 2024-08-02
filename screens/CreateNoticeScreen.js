@@ -10,13 +10,15 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
-import { db } from '../config'; // Make sure you have Firebase configured
+import { db } from '../config'; 
 
 const CreateNoticeScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [teacher, setTeacher] = useState(''); // New state for teacher's name
   const [tag, setTag] = useState('Announcement'); // Default tag
+
+
 
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
@@ -26,7 +28,8 @@ const CreateNoticeScreen = ({ navigation }) => {
           title,
           date: currentDate,
           content,
-          teacher, // Save teacher's name
+          teacher,
+          // Save teacher's name
           tag,
           readBy: [] 
         });

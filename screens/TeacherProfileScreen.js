@@ -1,8 +1,33 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { AuthContext } from '../AuthContext';
 
 const TeacherProfile = () => {
+  const fetchTeacherProfile = async (teacherId) => {
+    const docRef = doc(db, 'teachers', teacherId);
+    const docSnap = await getDoc(docRef);
+    const { user } = useContext(AuthContext); 
+    const [teacherProfile, setTeacherProfile] = useState(null);
+  
+    if (docSnap.exists()) {
+      return docSnap.data();
+    } else {
+      console.log('No such document!');
+    }
+  
+    useEffect(() => {
+      const fetchData = async () => {
+        const profile = await fetchTeacherProfile(user.uid);
+        setTeacherProfile(profile);
+  
+        // const studentList = await fetchStudentsForTeacher(user.uid);
+        // setStudents(studentList);
+      };
+  
+      fetchData();
+    }, [user.uid]);
+  };  
   return (
     <View style={styles.container}>
 
@@ -11,7 +36,7 @@ const TeacherProfile = () => {
           source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=2187&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }} // Replace with your image URL
           style={styles.profileImage}
         />
-        <Text style={styles.profileName}>John Doe</Text>
+        <Text style={styles.profileName}>Mansi </Text>
         <View style={styles.row}>
           <MaterialIcons name="schedule" size={16} color="gray" />
           <Text style={styles.profileSubtitle}>Today's Schedule</Text>
