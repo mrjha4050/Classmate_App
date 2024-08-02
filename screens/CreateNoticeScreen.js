@@ -1,5 +1,5 @@
 // src/screens/CreateNoticeScreen.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,39 +8,38 @@ import {
   StyleSheet,
   Alert,
   SafeAreaView,
-} from 'react-native';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
-import { db } from '../config'; 
+} from "react-native";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { db } from "../config";
+import * as Haptics from "expo-haptics";
 
 const CreateNoticeScreen = ({ navigation }) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [teacher, setTeacher] = useState(''); // New state for teacher's name
-  const [tag, setTag] = useState('Announcement'); // Default tag
-
-
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [teacher, setTeacher] = useState(""); // New state for teacher's name
+  const [tag, setTag] = useState("Announcement"); // Default tag
 
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
       try {
         const currentDate = new Date().toISOString(); // Automatically assign current date and time
-        await addDoc(collection(db, 'notices'), {
+        await addDoc(collection(db, "notices"), {
           title,
           date: currentDate,
           content,
           teacher,
           // Save teacher's name
           tag,
-          readBy: [] 
+          readBy: [],
         });
-        Alert.alert('Success', 'Notice created successfully!');
+        Alert.alert("Success", "Notice created successfully!");
         navigation.goBack();
       } catch (error) {
-        Alert.alert('Error', 'Failed to create notice. Please try again.');
+        Alert.alert("Error", "Failed to create notice. Please try again.");
         console.error(error);
       }
     } else {
-      Alert.alert('Error', 'Please fill out all fields');
+      Alert.alert("Error", "Please fill out all fields");
     }
   };
 
@@ -69,21 +68,45 @@ const CreateNoticeScreen = ({ navigation }) => {
         <Text style={styles.label}>Tag</Text>
         <View style={styles.tagContainer}>
           <TouchableOpacity
-            style={[styles.tagButton, tag === 'Announcement' && styles.tagButtonActive]}
-            onPress={() => setTag('Announcement')}
+            style={[
+              styles.tagButton,
+              tag === "Announcement" && styles.tagButtonActive,
+            ]}
+            onPress={() => {
+              setTag("Announcement");
+            }}
           >
-            <Text style={[styles.tagText, tag === 'Announcement' && styles.tagTextActive]}>Announcement</Text>
+            <Text
+              style={[
+                styles.tagText,
+                tag === "Announcement" && styles.tagTextActive,
+              ]}
+            >
+              Announcement
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tagButton, tag === 'Event' && styles.tagButtonActive]}
-            onPress={() => setTag('Event')}
+            style={[
+              styles.tagButton,
+              tag === "Event" && styles.tagButtonActive,
+            ]}
+            onPress={() => setTag("Event")}
           >
-            <Text style={[styles.tagText, tag === 'Event' && styles.tagTextActive]}>Event</Text>
+            <Text
+              style={[styles.tagText, tag === "Event" && styles.tagTextActive]}
+            >
+              Event
+            </Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={styles.createButton}
-          onPress={handleCreateNotice}
+          onPress={async () => {
+            await Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+            handleCreateNotice();
+          }}
         >
           <Text style={styles.createButtonText}>Create Notice</Text>
         </TouchableOpacity>
@@ -95,66 +118,66 @@ const CreateNoticeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 20,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   formContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
   },
   input: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     padding: 10,
     marginBottom: 10,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   tagContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 20,
   },
   tagButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
     padding: 10,
     borderRadius: 20,
   },
   tagButtonActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   tagText: {
-    color: '#555',
+    color: "#555",
   },
   tagTextActive: {
-    color: '#fff',
+    color: "#fff",
   },
   createButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   createButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

@@ -16,6 +16,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import * as Haptics from "expo-haptics";
 import { firebaseConfig } from '../config'; // Ensure the correct path to your config file
 
 const LoginScreen2 = ({ navigation }) => {
@@ -95,7 +96,10 @@ const LoginScreen2 = ({ navigation }) => {
         />
         <TouchableOpacity
           style={styles.button}
-          onPress={handleLogin}
+          onPress={async () => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            handleLogin();
+          }}
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>Login</Text>

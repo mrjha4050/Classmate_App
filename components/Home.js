@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { db } from '../config';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { db } from "../config";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import * as Haptics from "expo-haptics";
 
 const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -26,30 +27,33 @@ const HomeScreen = ({ route }) => {
 
   const fetchUser = async () => {
     try {
-      const userDocRef = doc(db, 'Student', auth.currentUser.uid);
+      const userDocRef = doc(db, "Student", auth.currentUser.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (docSnap.exists()) {
         setUser(docSnap.data());
       } else {
-        Alert.alert('Error', 'No such user!');
+        Alert.alert("Error", "No such user!");
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      Alert.alert('Error', 'Error fetching user data');
+      console.error("Error fetching user data:", error);
+      Alert.alert("Error", "Error fetching user data");
     }
   };
 
   const fetchNotices = async () => {
     try {
-      const noticesCollection = collection(db, 'notices');
+      const noticesCollection = collection(db, "notices");
       const noticesSnapshot = await getDocs(noticesCollection);
-      const noticesList = noticesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const noticesList = noticesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
-      setNotices(noticesList.slice(0,2));
+      setNotices(noticesList.slice(0, 2));
     } catch (error) {
-      console.error('Error fetching notices:', error);
-      Alert.alert('Error', 'Error fetching notices');
+      console.error("Error fetching notices:", error);
+      Alert.alert("Error", "Error fetching notices");
     }
   };
 
@@ -64,7 +68,6 @@ const HomeScreen = ({ route }) => {
     await fetchNotices();
     setRefreshing(false);
   };
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,59 +75,73 @@ const HomeScreen = ({ route }) => {
         <TouchableOpacity style={styles.iconButton}>
           <FontAwesome name="bars" size={24} color="white" />
         </TouchableOpacity>
-        <View>
-          {user && <Text style={styles.username}>{user.email}</Text>}
-        </View>
+        <View>{user && <Text style={styles.username}>{user.email}</Text>}</View>
         <TouchableOpacity style={styles.iconButton}>
           <FontAwesome name="bell" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}
-       refreshControl={
-         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-       }>
-
-       <View style={styles.section}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Notifications</Text>
           {notices.map((notice) => (
             <TouchableOpacity
               key={notice.id}
               style={styles.card}
-              onPress={() => navigation.navigate('NoticeDetail', { notice })}
+              onPress={() => navigation.navigate("NoticeDetail", { notice })}
             >
               <View style={styles.cardTextContainer}>
                 <Text style={styles.cardTitle}>{notice.title}</Text>
-                <Text style={styles.cardDate}>{new Date(notice.date).toLocaleString()}</Text>
+                <Text style={styles.cardDate}>
+                  {new Date(notice.date).toLocaleString()}
+                </Text>
               </View>
               <MaterialIcons name="event" size={24} color="black" />
             </TouchableOpacity>
           ))}
         </View>
 
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Links</Text>
           <View style={styles.quickLinks}>
-            <TouchableOpacity style={styles.quickLinkButton}
-            onPress={() => navigation.navigate('NoticePage')}>
+            <TouchableOpacity
+              style={styles.quickLinkButton}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("NoticePage");
+              }}
+            >
               <Text style={styles.quickLinkText}>NoticePage</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('CreateNoticeScreen')}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("CreateNoticeScreen");
+              }}
             >
               <Text style={styles.quickLinkText}>Create Notice </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('ProfileScreen')}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("ProfileScreen");
+              }}
             >
               <Text style={styles.quickLinkText}>Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate('TeacherProfile')}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("TeacherProfile");
+              }}
             >
               <Text style={styles.quickLinkText}>TeacherProfile</Text>
             </TouchableOpacity>
@@ -153,7 +170,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     // backgroundColor: "#f5f5f5",
-    backgroundColor:"transparent",
+    backgroundColor: "transparent",
   },
   header: {
     backgroundColor: "#fff",
@@ -199,7 +216,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 13,
-    flex:1,
+    flex: 1,
     marginRight: 6,
   },
   quickLinks: {
