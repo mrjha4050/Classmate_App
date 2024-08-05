@@ -15,7 +15,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
 import { firebaseConfig } from '../config'; // Ensure the correct path to your config file
 
@@ -35,18 +35,37 @@ const LoginScreen2 = ({ navigation }) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Save user details to Firestore
-        const userDocRef = doc(db, 'Student', user.uid);
-        await setDoc(userDocRef, {
-          email: user.email,
-          // lastLogin: new Date(),
-        });
+        // Get user role from Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
 
-        Alert.alert('Success', 'Login Successful!');
-        setIsLoading(false);
-        // Navigate 
-        navigation.navigate('Home', { email: user.email });
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const role = userData.role;
 
+          Alert.alert('Success', 'Login Successful!');
+          setIsLoading(false);
+
+          // Navigate based on role
+          if (role === 'student') {
+            // Fetch additional student info if needed
+            const studentDocRef = doc(db, 'students', user.uid);
+            const studentDoc = await getDoc(studentDocRef);
+            const studentData = studentDoc.exists() ? studentDoc.data() : {};
+
+            navigation.navigate('Home', { email: user.email, ...studentData });
+          } else if (role === 'teacher') {
+            // Fetch additional teacher info if needed
+            const teacherDocRef = doc(db, 'teachers', user.uid);
+            const teacherDoc = await getDoc(teacherDocRef);
+            const teacherData = teacherDoc.exists() ? teacherDoc.data() : {};
+
+            navigation.navigate('TeacherHomeScreen', { email: user.email, ...teacherData });
+          }
+        } else {
+          Alert.alert('Error', 'User data not found.');
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Error logging in:', error);
         Alert.alert('Error', 'Failed to login. Please try again.');
@@ -111,6 +130,13 @@ const LoginScreen2 = ({ navigation }) => {
         style={styles.signupRedirect}
       >
         <Text style={styles.signupRedirectText}>Forgot Password? Don't worry</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Signupscreen')}
+        style={styles.signupRedirect}
+      >
+        <Text style={styles.signupRedirectText}>New User ?</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

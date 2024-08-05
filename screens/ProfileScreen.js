@@ -19,11 +19,13 @@ const ProfileScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState({});
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userDocRef = doc(db, 'Student', auth.currentUser.uid);
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
         const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
@@ -31,6 +33,29 @@ const ProfileScreen = () => {
           setName(data.name || '');
           setPhoneNumber(data.phoneNumber || '');
           setNewEmail(data.email || '');
+          setRole(data.role);
+
+          if (data.role === 'student') {
+            const studentDocRef = doc(db, 'students', auth.currentUser.uid);
+            const studentDocSnap = await getDoc(studentDocRef);
+            if (studentDocSnap.exists()) {
+              const studentData = studentDocSnap.data();
+              setAdditionalInfo({
+                course: studentData.course || '',
+                year: studentData.year || '',
+              });
+            }
+          } else if (data.role === 'teacher') {
+            const teacherDocRef = doc(db, 'teachers', auth.currentUser.uid);
+            const teacherDocSnap = await getDoc(teacherDocRef);
+            if (teacherDocSnap.exists()) {
+              const teacherData = teacherDocSnap.data();
+              setAdditionalInfo({
+                department: teacherData.department || '',
+                subjects: teacherData.subjects || '',
+              });
+            }
+          }
         } else {
           Alert.alert('Error', 'No such user!');
         }
@@ -45,7 +70,7 @@ const ProfileScreen = () => {
 
   const handleUpdate = async () => {
     try {
-      const userDocRef = doc(db, 'Student', auth.currentUser.uid);
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
 
       const updateData = {};
       if (name) updateData.name = name;
@@ -54,11 +79,22 @@ const ProfileScreen = () => {
         await updateEmail(auth.currentUser, newEmail);
         updateData.email = newEmail;
       }
-      if (password) {
-        await updatePassword(auth.currentUser, password);
-      }
 
       await updateDoc(userDocRef, updateData);
+
+      if (role === 'student') {
+        const studentDocRef = doc(db, 'students', auth.currentUser.uid);
+        await updateDoc(studentDocRef, {
+          course: additionalInfo.course,
+          year: additionalInfo.year,
+        });
+      } else if (role === 'teacher') {
+        const teacherDocRef = doc(db, 'teachers', auth.currentUser.uid);
+        await updateDoc(teacherDocRef, {
+          department: additionalInfo.department,
+          subjects: additionalInfo.subjects,
+        });
+      }
 
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
@@ -69,7 +105,7 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
+      {/* <Text style={styles.title}>Edit Profile</Text> */}
       <View style={styles.formContainer}>
         <Text style={styles.label}>Name</Text>
         <TextInput
@@ -96,15 +132,41 @@ const ProfileScreen = () => {
           autoCapitalize="none"
           autoComplete="email"
         />
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your new password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-        />
+        {role === 'student' ? (
+          <View>
+            <Text style={styles.label}>Course</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your course"
+              value={additionalInfo.course || ''}
+              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, course: text })}
+            />
+            <Text style={styles.label}>Year</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your year"
+              value={additionalInfo.year || ''}
+              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, year: text })}
+            />
+          </View>
+        ) : (
+          <View>
+            <Text style={styles.label}>Department</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your department"
+              value={additionalInfo.department || ''}
+              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, department: text })}
+            />
+            <Text style={styles.label}>Subjects</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your subjects (comma separated)"
+              value={additionalInfo.subjects || ''}
+              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, subjects: text.split(',').map(subject => subject.trim()) })}
+            />
+          </View>
+        )}
         <TouchableOpacity
           style={styles.button}
           onPress={handleUpdate}

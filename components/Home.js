@@ -27,7 +27,7 @@ const HomeScreen = ({ route }) => {
 
   const fetchUser = async () => {
     try {
-      const userDocRef = doc(db, "Student", auth.currentUser.uid);
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (docSnap.exists()) {
@@ -75,7 +75,7 @@ const HomeScreen = ({ route }) => {
         <TouchableOpacity style={styles.iconButton}>
           <FontAwesome name="bars" size={24} color="white" />
         </TouchableOpacity>
-        <View>{user && <Text style={styles.username}>{user.email}</Text>}</View>
+        <View>{user && <Text style={styles.username}>{user.name}</Text>}</View>
         <TouchableOpacity style={styles.iconButton}>
           <FontAwesome name="bell" size={24} color="white" />
         </TouchableOpacity>
@@ -91,8 +91,8 @@ const HomeScreen = ({ route }) => {
           <Text style={styles.sectionTitle}>Recent Notifications</Text>
           {notices.map((notice) => (
             <TouchableOpacity
-              key={notice.id}
-              style={styles.card}
+
+            style={styles.card}
               onPress={() => navigation.navigate("NoticeDetail", { notice })}
             >
               <View style={styles.cardTextContainer}>

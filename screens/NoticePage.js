@@ -72,6 +72,18 @@ const NoticesScreen = () => {
           <Text style={[styles.filterText, filter === 'Announcement' && styles.filterTextActive]}>Announcements</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={[styles.filterButton, filter === 'Sports' && styles.filterButtonActive]}
+          onPress={() => filterNoticesByTagAndUser(notices, 'Sports')}
+        >
+          <Text style={[styles.filterText, filter === 'Sports' && styles.filterTextActive]}>Sports</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'TimeTable' && styles.filterButtonActive]}
+          onPress={() => filterNoticesByTagAndUser(notices, 'TimeTable')}
+        >
+          <Text style={[styles.filterText, filter === 'TimeTable' && styles.filterTextActive]}>TimeTable</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.filterButton, filter === 'Event' && styles.filterButtonActive]}
           onPress={() => filterNoticesByTagAndUser(notices, 'Event')}
         >

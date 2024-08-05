@@ -16,8 +16,8 @@ import * as Haptics from "expo-haptics";
 const CreateNoticeScreen = ({ navigation }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [teacher, setTeacher] = useState(""); // New state for teacher's name
-  const [tag, setTag] = useState("Announcement"); // Default tag
+  const [teacher, setTeacher] = useState(""); 
+  const [tag, setTag] = useState("Announcement"); 
 
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
@@ -85,6 +85,45 @@ const CreateNoticeScreen = ({ navigation }) => {
               Announcement
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tagButton,
+              tag === "TimeTable" && styles.tagButtonActive,
+            ]}
+            onPress={() => {
+              setTag("TimeTable");
+            }}
+          >
+            <Text
+              style={[
+                styles.tagText,
+                tag === "TimeTable" && styles.tagTextActive,
+              ]}
+            >
+              TimeTable
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tagButton,
+              tag === "Sports" && styles.tagButtonActive,
+            ]}
+            onPress={() => {
+              setTag("Sports");
+            }}
+          >
+            <Text
+              style={[
+                styles.tagText,
+                tag === "Sports" && styles.tagTextActive,
+              ]}
+            >
+              Sports
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[
               styles.tagButton,

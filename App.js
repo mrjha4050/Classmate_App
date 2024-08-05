@@ -10,6 +10,8 @@ import CreateNoticeScreen from './screens/CreateNoticeScreen';
 import NoticeDetail from './screens/NoticeDetail';
 import AttendanceScreen from './screens/AttendanceScreen';
 import TeacherProfile from './screens/TeacherProfileScreen';
+import SignupScreen from './screens/SignupScreen';
+import TeacherHomeScreen from './screens/TeacherHomeScreen';
 import { AuthProvider } from './AuthContext';
 
 const Stack = createStackNavigator();
@@ -30,6 +32,11 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="Signupscreen"
+            component={SignupScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="Home"
             component={HomeScreen}
             options={{ headerShown: false }}
@@ -43,6 +50,7 @@ export default function App() {
             component={CreateNoticeScreen}
           />
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
+          <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen} />
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
 
         </Stack.Navigator>
