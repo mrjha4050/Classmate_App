@@ -17,18 +17,31 @@ import {
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { firebaseConfig } from '../config';
+import {Picker} from '@react-native-picker/picker';
+import MultiSelect from 'react-native-multiple-select';
+
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('student');
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [additionalInfo, setAdditionalInfo] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+
+  const subjects = [
+    { id: 'SPM', name: 'SPM' },
+    { id: 'Java', name: 'Java' },
+    { id: 'CPP', name: 'CPP' },
+    { id: 'Python', name: 'Python' },
+    { id: 'Database Management', name: 'Database Management' },    
+    { id: 'Advance Web Programming', name: 'Advance Web Programming' },
+  ];
 
   const handleSignup = async () => {
     if (email && password && name) {
@@ -56,7 +69,7 @@ const SignupScreen = ({ navigation }) => {
           await setDoc(teacherDocRef, {
             userId: user.uid,
             department: additionalInfo.department,
-            subjects: additionalInfo.subjects,
+            subjects: selectedSubjects,
           });
         }
 
@@ -128,40 +141,86 @@ const SignupScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           {role === 'student' ? (
-            <View>
-              <Text style={styles.label}>Course</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your course"
-                value={additionalInfo.course || ''}
-                onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, course: text })}
-              />
-              <Text style={styles.label}>Year</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your year"
-                value={additionalInfo.year || ''}
-                onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, year: text })}
-              />
-            </View>
+          <View>
+          <Text style={styles.label}>Course</Text>
+          <Picker
+            selectedValue={additionalInfo.course}
+            style={styles.picker}
+            onValueChange={(itemValue) =>
+              setAdditionalInfo({ ...additionalInfo, course: itemValue })
+            }
+          >
+            <Picker.Item label="BSC.IT" value="BSC.IT" />
+            <Picker.Item label="BMS" value="BMS" />
+            <Picker.Item label="BCA" value="BCA" />
+            <Picker.Item label="BFM" value="BFM" />
+            <Picker.Item label="BBI" value="BBI" />
+          </Picker>
+          <Text style={styles.label}>Year</Text>
+          <Picker
+            selectedValue={additionalInfo.year}
+            style={styles.picker}
+            onValueChange={(itemValue) =>
+              setAdditionalInfo({ ...additionalInfo, year: itemValue })
+            }
+          >
+            <Picker.Item label="First Year" value="First Year" />
+            <Picker.Item label="Second Year" value="Second Year" />
+            <Picker.Item label="Third Year" value="Third Year" />
+          </Picker>
+        </View>
           ) : (
+
             <View>
-              <Text style={styles.label}>Department</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your department"
-                value={additionalInfo.department || ''}
-                onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, department: text })}
-              />
-              <Text style={styles.label}>Subjects</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your subjects (comma separated)"
-                value={additionalInfo.subjects || ''}
-                onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, subjects: text.split(',').map(subject => subject.trim()) })}
-              />
-            </View>
+            <Text style={styles.label}>Department</Text>
+            <Picker
+              selectedValue={additionalInfo.department}
+              style={styles.picker}
+              onValueChange={(itemValue) =>
+                setAdditionalInfo({ ...additionalInfo, department: itemValue })
+              }
+            >
+              <Picker.Item label="BSC.IT" value="BSC.IT" />
+              <Picker.Item label="BMS" value="BMS" />
+              <Picker.Item label="BCA" value="BCA" />
+              <Picker.Item label="BFM" value="BFM" />
+              <Picker.Item label="BBI" value="BBI" />
+            </Picker>
+            <Text style={styles.label}>Subjects</Text>
+            <MultiSelect
+              items={subjects}
+              uniqueKey="id"
+              onSelectedItemsChange={(selectedItems) => setSelectedSubjects(selectedItems)}
+              selectedItems={selectedSubjects}
+              selectText="Select Subjects"
+              searchInputPlaceholderText="Search Subjects..."
+              onChangeInput={(text) => console.log(text)}
+              tagRemoveIconColor="#CCC"
+              tagBorderColor="#CCC"
+              tagTextColor="#CCC"
+              selectedItemTextColor="#007BFF"
+              selectedItemIconColor="#007BFF"
+              itemTextColor="#000"
+              displayKey="name"
+              searchInputStyle={{ color: '#CCC' }}
+              submitButtonColor="#007BFF"
+              submitButtonText="Submit"
+              styleDropdownMenuSubsection={styles.multiSelect}
+            />
+            {/* {selectedSubjects.length > 0 && (
+              <View style={styles.selectedSubjectsContainer}>
+                <Text style={styles.selectedSubjectsTitle}>Selected Subjects:</Text>
+                {selectedSubjects.map((subject) => (
+                  <Text key={subject} style={styles.selectedSubject}>
+                    {subject}
+                  </Text>
+                ))}
+              </View>
+            )} */}
+          </View>
           )}
+
+
           <TouchableOpacity
             style={styles.button}
             onPress={handleSignup}
@@ -227,6 +286,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
+ 
   roleButton: {
     flex: 1,
     paddingVertical: 10,
@@ -255,15 +315,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loadingText: {
-    marginTop: 20,
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#007BFF',
   },
   loginRedirect: {
-    marginTop: 10,
+    marginTop: 20,
   },
   loginRedirectText: {
     color: '#007BFF',
+    textAlign: 'center',
     fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

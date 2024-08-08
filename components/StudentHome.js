@@ -118,15 +118,7 @@ const HomeScreen = ({ route }) => {
             >
               <Text style={styles.quickLinkText}>NoticePage</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("CreateNoticeScreen");
-              }}
-            >
-              <Text style={styles.quickLinkText}>Create Notice </Text>
-            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={async () => {
@@ -136,14 +128,15 @@ const HomeScreen = ({ route }) => {
             >
               <Text style={styles.quickLinkText}>Profile</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("TeacherProfile");
+                navigation.navigate("AttendanceScreen");
               }}
             >
-              <Text style={styles.quickLinkText}>TeacherProfile</Text>
+              <Text style={styles.quickLinkText}>AttendeacneScren</Text>
             </TouchableOpacity>
           </View>
         </View>

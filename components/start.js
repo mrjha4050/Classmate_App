@@ -1,4 +1,4 @@
-// src/screens/SignInScreen.js
+// screens/SignInScreen.js
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
@@ -37,6 +37,13 @@ const SignInScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>Teacher</Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+        onPress={() => navigation.navigate('Signupscreen')}
+        style={styles.signupRedirect}
+      >
+        <Text style={styles.signupRedirectText}>New User</Text>
+      </TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );
@@ -85,6 +92,14 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     color: '#808080',
+  },
+  signupRedirect: {
+    marginTop: 30,
+  },
+  signupRedirectText: {
+    color: '#007BFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

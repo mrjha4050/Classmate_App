@@ -2,8 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import SignInScreen from './components/start';
-import LoginScreen2 from './components/login';
-import HomeScreen from './components/Home';
+import LoginScreen from './components/login';
+import HomeScreen from './components/StudentHome';
 import NoticePage from './screens/NoticePage';
 import ProfileScreen from './screens/ProfileScreen';
 import CreateNoticeScreen from './screens/CreateNoticeScreen';
@@ -28,7 +28,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Login1"
-            component={LoginScreen2}
+            component={LoginScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

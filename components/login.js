@@ -1,4 +1,3 @@
-// src/screens/LoginScreen.js
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -19,7 +18,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
 import { firebaseConfig } from '../config'; // Ensure the correct path to your config file
 
-const LoginScreen2 = ({ navigation }) => {
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -132,12 +131,12 @@ const LoginScreen2 = ({ navigation }) => {
         <Text style={styles.signupRedirectText}>Forgot Password? Don't worry</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={() => navigation.navigate('Signupscreen')}
         style={styles.signupRedirect}
       >
         <Text style={styles.signupRedirectText}>New User ?</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </SafeAreaView>
   );
 };
@@ -203,4 +202,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen2;
+export default LoginScreen;
