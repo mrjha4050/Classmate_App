@@ -1,5 +1,5 @@
 // src/screens/ProfileScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -8,60 +8,63 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-} from 'react-native';
-import { getAuth, updateEmail, updatePassword } from 'firebase/auth';
-import { db } from '../config';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+} from "react-native";
+import { getAuth, updateEmail, updatePassword } from "firebase/auth";
+import { db } from "../config";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const ProfileScreen = () => {
   const auth = getAuth();
-  const [name, setName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('');
+  const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState({});
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
         const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setName(data.name || '');
-          setPhoneNumber(data.phoneNumber || '');
-          setNewEmail(data.email || '');
+          setName(data.name || "");
+          setPhoneNumber(data.phoneNumber || "");
+          setNewEmail(data.email || "");
           setRole(data.role);
 
-          if (data.role === 'student') {
-            const studentDocRef = doc(db, 'students', auth.currentUser.uid);
+          if (data.role === "student") {
+            const studentDocRef = doc(db, "students", auth.currentUser.uid);
             const studentDocSnap = await getDoc(studentDocRef);
             if (studentDocSnap.exists()) {
               const studentData = studentDocSnap.data();
               setAdditionalInfo({
-                course: studentData.course || '',
-                year: studentData.year || '',
+                course: studentData.course || "",
+                year: studentData.year || "",
               });
             }
-          } else if (data.role === 'teacher') {
-            const teacherDocRef = doc(db, 'teachers', auth.currentUser.uid);
+          } else if (data.role === "teacher") {
+            const teacherDocRef = doc(db, "teachers", auth.currentUser.uid);
             const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
               const teacherData = teacherDocSnap.data();
               setAdditionalInfo({
-                department: teacherData.department || '',
-                subjects: teacherData.subjects || '',
+                department: teacherData.department || "",
+                // subjects: teacherData.subjects || '',array
+                subjects: Array.isArray(teacherData.subjects)
+                  ? teacherData.subjects
+                  : [],
               });
             }
           }
         } else {
-          Alert.alert('Error', 'No such user!');
+          Alert.alert("Error", "No such user!");
         }
       } catch (error) {
-        Alert.alert('Error', 'Error fetching user data');
-        console.error('Error fetching user data:', error);
+        Alert.alert("Error", "Error fetching user data");
+        console.error("Error fetching user data:", error);
       }
     };
 
@@ -70,7 +73,7 @@ const ProfileScreen = () => {
 
   const handleUpdate = async () => {
     try {
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
 
       const updateData = {};
       if (name) updateData.name = name;
@@ -82,24 +85,24 @@ const ProfileScreen = () => {
 
       await updateDoc(userDocRef, updateData);
 
-      if (role === 'student') {
-        const studentDocRef = doc(db, 'students', auth.currentUser.uid);
+      if (role === "student") {
+        const studentDocRef = doc(db, "students", auth.currentUser.uid);
         await updateDoc(studentDocRef, {
           course: additionalInfo.course,
           year: additionalInfo.year,
         });
-      } else if (role === 'teacher') {
-        const teacherDocRef = doc(db, 'teachers', auth.currentUser.uid);
+      } else if (role === "teacher") {
+        const teacherDocRef = doc(db, "teachers", auth.currentUser.uid);
         await updateDoc(teacherDocRef, {
           department: additionalInfo.department,
           subjects: additionalInfo.subjects,
         });
       }
 
-      Alert.alert('Success', 'Profile updated successfully!');
+      Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
-      console.error('Error updating profile:', error);
+      Alert.alert("Error", "Failed to update profile");
+      console.error("Error updating profile:", error);
     }
   };
 
@@ -132,21 +135,25 @@ const ProfileScreen = () => {
           autoCapitalize="none"
           autoComplete="email"
         />
-        {role === 'student' ? (
+        {role === "student" ? (
           <View>
             <Text style={styles.label}>Course</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your course"
-              value={additionalInfo.course || ''}
-              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, course: text })}
+              value={additionalInfo.course || ""}
+              onChangeText={(text) =>
+                setAdditionalInfo({ ...additionalInfo, course: text })
+              }
             />
             <Text style={styles.label}>Year</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your year"
-              value={additionalInfo.year || ''}
-              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, year: text })}
+              value={additionalInfo.year || ""}
+              onChangeText={(text) =>
+                setAdditionalInfo({ ...additionalInfo, year: text })
+              }
             />
           </View>
         ) : (
@@ -155,22 +162,30 @@ const ProfileScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Enter your department"
-              value={additionalInfo.department || ''}
-              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, department: text })}
+              value={additionalInfo.department || ""}
+              onChangeText={(text) =>
+                setAdditionalInfo({ ...additionalInfo, department: text })
+              }
             />
             <Text style={styles.label}>Subjects</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your subjects (comma separated)"
-              value={additionalInfo.subjects || ''}
-              onChangeText={(text) => setAdditionalInfo({ ...additionalInfo, subjects: text.split(',').map(subject => subject.trim()) })}
+              value={
+                additionalInfo.subjects
+                  ? additionalInfo.subjects.join(", ")
+                  : ""
+              }
+              onChangeText={(text) =>
+                setAdditionalInfo({
+                  ...additionalInfo,
+                  subjects: text.split(",").map((subject) => subject.trim()),
+                })
+              }
             />
           </View>
         )}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleUpdate}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleUpdate}>
           <Text style={styles.buttonText}>Update Profile</Text>
         </TouchableOpacity>
       </View>
@@ -181,16 +196,16 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
   },
   formContainer: {
-    width: '80%',
+    width: "80%",
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -199,32 +214,32 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   input: {
     height: 40,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#007BFF",
     paddingVertical: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

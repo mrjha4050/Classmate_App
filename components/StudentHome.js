@@ -22,7 +22,7 @@ const HomeScreen = ({ route }) => {
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const { email } = route.params;
+  // const { email } = route.params;
   const auth = getAuth();
 
   const fetchUser = async () => {
@@ -91,7 +91,7 @@ const HomeScreen = ({ route }) => {
           <Text style={styles.sectionTitle}>Recent Notifications</Text>
           {notices.map((notice) => (
             <TouchableOpacity
-
+            key={notice.id} 
             style={styles.card}
               onPress={() => navigation.navigate("NoticeDetail", { notice })}
             >

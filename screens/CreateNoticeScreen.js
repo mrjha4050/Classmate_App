@@ -1,5 +1,5 @@
 // src/screens/CreateNoticeScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,37 @@ import {
 } from "react-native";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { db } from "../config";
+import { getAuth } from "firebase/auth"; 
+import { doc, getDoc, getDocs } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 
 const CreateNoticeScreen = ({ navigation }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [teacher, setTeacher] = useState(""); 
+  const [teacher, setTeacher] = useState("");
+  const [user, setUser] = useState(null); 
   const [tag, setTag] = useState("Announcement"); 
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const auth = getAuth();
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (docSnap.exists()) {
+          setTeacher(docSnap.data().name);
+        } else {
+          Alert.alert("Error", "No such user!");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        Alert.alert("Error", "Error fetching user data");
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
@@ -28,7 +52,6 @@ const CreateNoticeScreen = ({ navigation }) => {
           date: currentDate,
           content,
           teacher,
-          // Save teacher's name
           tag,
           readBy: [],
         });
@@ -64,6 +87,7 @@ const CreateNoticeScreen = ({ navigation }) => {
           placeholder="Teacher's Name"
           value={teacher}
           onChangeText={setTeacher}
+          editable={false} // Make the input read-only since it's auto-filled
         />
         <Text style={styles.label}>Tag</Text>
         <View style={styles.tagContainer}>

@@ -50,7 +50,8 @@ export default function App() {
             component={CreateNoticeScreen}
           />
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
-          <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen} />
+          <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen} options={{ headerShown: false }}
+          />
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
 
         </Stack.Navigator>
