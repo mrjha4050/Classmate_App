@@ -1,5 +1,5 @@
 // src/screens/SignupScreen.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -9,23 +9,20 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-} from 'react-native';
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-} from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { firebaseConfig } from '../config';
-import {Picker} from '@react-native-picker/picker';
-import MultiSelect from 'react-native-multiple-select';
-
+} from "react-native";
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { firebaseConfig } from "../config";
+import { Picker } from "@react-native-picker/picker";
+import MultiSelect from "react-native-multiple-select";
 
 const SignupScreen = ({ navigation }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rollNumber, setrollNumber] = useState("");
+  const [role, setRole] = useState("students");
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [additionalInfo, setAdditionalInfo] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -35,57 +32,65 @@ const SignupScreen = ({ navigation }) => {
   const db = getFirestore(app);
 
   const subjects = [
-    { id: 'SPM', name: 'SPM' },
-    { id: 'Java', name: 'Java' },
-    { id: 'CPP', name: 'CPP' },
-    { id: 'Python', name: 'Python' },
-    { id: 'Database Management', name: 'Database Management' },    
-    { id: 'Advance Web Programming', name: 'Advance Web Programming' },
+    { id: "SPM", name: "SPM" },
+    { id: "Java", name: "Java" },
+    { id: "CPP", name: "CPP" },
+    { id: "Python", name: "Python" },
+    { id: "Database Management", name: "Database Management" },
+    { id: "Advance Web Programming", name: "Advance Web Programming" },
   ];
 
   const handleSignup = async () => {
-    if (email && password && name) {
+    if (email && password && name && (role !== "student" || rollNumber)) {
       setIsLoading(true);
       try {
+        if (role === "student" && (!additionalInfo.course || !additionalInfo.year)) {
+          Alert.alert("Error", "Please select a valid course and year.");
+          setIsLoading(false);
+          return;
+        }
+  
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, "users", user.uid);
         await setDoc(userDocRef, {
           email: user.email,
           role: role,
           name: name,
         });
-
-        if (role === 'student') {
-          const studentDocRef = doc(db, 'students', user.uid);
+  
+        if (role === "student") {
+          console.log("Additional Info:", additionalInfo); // Debugging line
+          const studentDocRef = doc(db, "students", user.uid);
           await setDoc(studentDocRef, {
             userId: user.uid,
-            course: additionalInfo.course,
-            year: additionalInfo.year,
+            rollNumber: rollNumber, 
+            course: additionalInfo.course || "Unknown Course",
+            year: additionalInfo.year || "Unknown Year",
           });
-        } else if (role === 'teacher') {
-          const teacherDocRef = doc(db, 'teachers', user.uid);
+          
+        } else if (role === "teacher") {
+          const teacherDocRef = doc(db, "teachers", user.uid);
           await setDoc(teacherDocRef, {
             userId: user.uid,
             department: additionalInfo.department,
             subjects: selectedSubjects,
           });
         }
-
-        Alert.alert('Success', 'Signup Successful!');
+  
+        Alert.alert("Success", "Signup Successful!");
         setIsLoading(false);
-        navigation.navigate('Login1');
+        navigation.navigate("Login1");
       } catch (error) {
-        console.error('Error signing up:', error);
-        Alert.alert('Error', 'Failed to sign up. Please try again.');
+        console.error("Error signing up:", error);
+        Alert.alert("Error", "Failed to sign up. Please try again.");
         setIsLoading(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter name, email, and password');
+      Alert.alert("Error", "Please enter all required fields");
     }
   };
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -124,102 +129,104 @@ const SignupScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.roleButton,
-                role === 'student' && styles.roleButtonActive,
+                role === "student" && styles.roleButtonActive,
               ]}
-              onPress={() => setRole('student')}
+              onPress={() => setRole("student")}
             >
               <Text style={styles.roleButtonText}>Student</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.roleButton,
-                role === 'teacher' && styles.roleButtonActive,
+                role === "teacher" && styles.roleButtonActive,
               ]}
-              onPress={() => setRole('teacher')}
+              onPress={() => setRole("teacher")}
             >
               <Text style={styles.roleButtonText}>Teacher</Text>
             </TouchableOpacity>
           </View>
-          {role === 'student' ? (
-          <View>
-          <Text style={styles.label}>Course</Text>
-          <Picker
-            selectedValue={additionalInfo.course}
-            style={styles.picker}
-            onValueChange={(itemValue) =>
-              setAdditionalInfo({ ...additionalInfo, course: itemValue })
-            }
-          >
-            <Picker.Item label="BSC.IT" value="BSC.IT" />
-            <Picker.Item label="BMS" value="BMS" />
-            <Picker.Item label="BCA" value="BCA" />
-            <Picker.Item label="BFM" value="BFM" />
-            <Picker.Item label="BBI" value="BBI" />
-          </Picker>
-          <Text style={styles.label}>Year</Text>
-          <Picker
-            selectedValue={additionalInfo.year}
-            style={styles.picker}
-            onValueChange={(itemValue) =>
-              setAdditionalInfo({ ...additionalInfo, year: itemValue })
-            }
-          >
-            <Picker.Item label="First Year" value="First Year" />
-            <Picker.Item label="Second Year" value="Second Year" />
-            <Picker.Item label="Third Year" value="Third Year" />
-          </Picker>
-        </View>
-          ) : (
-
+          {role === "student" ? (
             <View>
-            <Text style={styles.label}>Department</Text>
-            <Picker
-              selectedValue={additionalInfo.department}
-              style={styles.picker}
-              onValueChange={(itemValue) =>
-                setAdditionalInfo({ ...additionalInfo, department: itemValue })
-              }
-            >
-              <Picker.Item label="BSC.IT" value="BSC.IT" />
-              <Picker.Item label="BMS" value="BMS" />
-              <Picker.Item label="BCA" value="BCA" />
-              <Picker.Item label="BFM" value="BFM" />
-              <Picker.Item label="BBI" value="BBI" />
-            </Picker>
-            <Text style={styles.label}>Subjects</Text>
-            <MultiSelect
-              items={subjects}
-              uniqueKey="id"
-              onSelectedItemsChange={(selectedItems) => setSelectedSubjects(selectedItems)}
-              selectedItems={selectedSubjects}
-              selectText="Select Subjects"
-              searchInputPlaceholderText="Search Subjects..."
-              onChangeInput={(text) => console.log(text)}
-              tagRemoveIconColor="#CCC"
-              tagBorderColor="#CCC"
-              tagTextColor="#CCC"
-              selectedItemTextColor="#007BFF"
-              selectedItemIconColor="#007BFF"
-              itemTextColor="#000"
-              displayKey="name"
-              searchInputStyle={{ color: '#CCC' }}
-              submitButtonColor="#007BFF"
-              submitButtonText="Submit"
-              styleDropdownMenuSubsection={styles.multiSelect}
-            />
-            {/* {selectedSubjects.length > 0 && (
-              <View style={styles.selectedSubjectsContainer}>
-                <Text style={styles.selectedSubjectsTitle}>Selected Subjects:</Text>
-                {selectedSubjects.map((subject) => (
-                  <Text key={subject} style={styles.selectedSubject}>
-                    {subject}
-                  </Text>
-                ))}
-              </View>
-            )} */}
-          </View>
+              <Text style={styles.label}>Roll Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your Roll Number"
+                value={rollNumber}
+                onChangeText={setrollNumber}
+                autoCapitalize="none"
+                keyboardType="numeric"
+              />
+              <Text style={styles.label}>Course</Text>
+              <Picker
+                selectedValue={additionalInfo.course}
+                style={styles.picker}
+                onValueChange={(itemValue) =>
+                  setAdditionalInfo({ ...additionalInfo, course: itemValue })
+                }
+              >
+                <Picker.Item label="BSC.IT" value="BSC.IT" />
+                <Picker.Item label="BMS" value="BMS" />
+                <Picker.Item label="BCA" value="BCA" />
+                <Picker.Item label="BFM" value="BFM" />
+                <Picker.Item label="BBI" value="BBI" />
+              </Picker>
+              <Text style={styles.label}>Year</Text>
+              <Picker
+                selectedValue={additionalInfo.year}
+                style={styles.picker}
+                onValueChange={(itemValue) =>
+                  setAdditionalInfo({ ...additionalInfo, year: itemValue })
+                }
+              >
+                <Picker.Item label="First Year" value="First Year" />
+                <Picker.Item label="Second Year" value="Second Year" />
+                <Picker.Item label="Third Year" value="Third Year" />
+              </Picker>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.label}>Department</Text>
+              <Picker
+                selectedValue={additionalInfo.department}
+                style={styles.picker}
+                onValueChange={(itemValue) =>
+                  setAdditionalInfo({
+                    ...additionalInfo,
+                    department: itemValue,
+                  })
+                }
+              >
+                <Picker.Item label="BSC.IT" value="BSC.IT" />
+                <Picker.Item label="BMS" value="BMS" />
+                <Picker.Item label="BCA" value="BCA" />
+                <Picker.Item label="BFM" value="BFM" />
+                <Picker.Item label="BBI" value="BBI" />
+              </Picker>
+              <Text style={styles.label}>Subjects</Text>
+              <MultiSelect
+                items={subjects}
+                uniqueKey="id"
+                onSelectedItemsChange={(selectedItems) =>
+                  setSelectedSubjects(selectedItems)
+                }
+                selectedItems={selectedSubjects}
+                selectText="Select Subjects"
+                searchInputPlaceholderText="Search Subjects..."
+                onChangeInput={(text) => console.log(text)}
+                tagRemoveIconColor="#CCC"
+                tagBorderColor="#CCC"
+                tagTextColor="#CCC"
+                selectedItemTextColor="#007BFF"
+                selectedItemIconColor="#007BFF"
+                itemTextColor="#000"
+                displayKey="name"
+                searchInputStyle={{ color: "#CCC" }}
+                submitButtonColor="#007BFF"
+                submitButtonText="Submit"
+                styleDropdownMenuSubsection={styles.multiSelect}
+              />
+            </View>
           )}
-
 
           <TouchableOpacity
             style={styles.button}
@@ -231,10 +238,12 @@ const SignupScreen = ({ navigation }) => {
           {isLoading && <Text style={styles.loadingText}>Loading...</Text>}
         </View>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Login1')}
+          onPress={() => navigation.navigate("Login1")}
           style={styles.loginRedirect}
         >
-          <Text style={styles.loginRedirectText}>Already have an account? Login</Text>
+          <Text style={styles.loginRedirectText}>
+            Already have an account? Login
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -244,19 +253,19 @@ const SignupScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   scrollContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 20,
   },
   formContainer: {
-    width: '80%',
+    width: "80%",
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -265,66 +274,66 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   input: {
     height: 40,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   roleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
- 
+
   roleButton: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 5,
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
   },
   roleButtonActive: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#007BFF",
   },
   roleButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#007BFF",
     paddingVertical: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loadingText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 10,
-    color: '#007BFF',
+    color: "#007BFF",
   },
   loginRedirect: {
     marginTop: 20,
   },
   loginRedirectText: {
-    color: '#007BFF',
-    textAlign: 'center',
+    color: "#007BFF",
+    textAlign: "center",
     fontSize: 16,
   },
 });

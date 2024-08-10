@@ -72,7 +72,7 @@ const LoginScreen = ({ navigation }) => {
       }
     } else {
       Alert.alert('Error', 'Please enter both email and password');
-    }
+    } 
   };
 
   const handleForgotPassword = async () => {

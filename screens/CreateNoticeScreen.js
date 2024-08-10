@@ -9,10 +9,9 @@ import {
   Alert,
   SafeAreaView,
 } from "react-native";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { collection, addDoc ,getDoc, doc} from "firebase/firestore";
 import { db } from "../config";
 import { getAuth } from "firebase/auth"; 
-import { doc, getDoc, getDocs } from "firebase/firestore";
 import * as Haptics from "expo-haptics";
 
 const CreateNoticeScreen = ({ navigation }) => {
