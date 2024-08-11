@@ -16,6 +16,7 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { firebaseConfig } from "../config";
 import { Picker } from "@react-native-picker/picker";
 import MultiSelect from "react-native-multiple-select";
+import { subjects } from "../components/subjects";
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -30,15 +31,6 @@ const SignupScreen = ({ navigation }) => {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-
-  const subjects = [
-    { id: "SPM", name: "SPM" },
-    { id: "Java", name: "Java" },
-    { id: "CPP", name: "CPP" },
-    { id: "Python", name: "Python" },
-    { id: "Database Management", name: "Database Management" },
-    { id: "Advance Web Programming", name: "Advance Web Programming" },
-  ];
 
   const handleSignup = async () => {
     if (email && password && name && (role !== "student" || rollNumber)) {

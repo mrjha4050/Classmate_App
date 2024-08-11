@@ -13,6 +13,8 @@ import TeacherProfile from './screens/TeacherProfileScreen';
 import SignupScreen from './screens/SignupScreen';
 import TeacherHomeScreen from './screens/TeacherHomeScreen';
 import { AuthProvider } from './AuthContext';
+import CreateTimetableScreen from './screens/CreateTimeTableScreen';
+import ViewTimetableScreen from './screens/ViewTimeTableScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +55,8 @@ export default function App() {
           <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen} options={{ headerShown: false }}
           />
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
+          <Stack.Screen name="CreateTimetableScreen" component={CreateTimetableScreen} />
+          <Stack.Screen name="ViewTimetableScreen" component={ViewTimetableScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>

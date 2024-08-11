@@ -1,3 +1,4 @@
+// src/screens/TeacherHomeScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -11,32 +12,48 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { db } from "../config";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Haptics from "expo-haptics";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
-const TeacherHomeScreen = () => {
+const TeacherHomeScreen = ({ route }) => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  // const { email } = route.params;
   const auth = getAuth();
 
-  const fetchUser = async () => {
+  const fetchUserAndTeacherDetails = async () => {
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const docSnap = await getDoc(userDocRef);
+      const userDocSnap = await getDoc(userDocRef);
 
-      if (docSnap.exists()) {
-        setUser(docSnap.data());
+      if (userDocSnap.exists()) {
+        console.log("User data:", userDocSnap.data()); // Logging user data
+        const teacherId = auth.currentUser.uid;
+        const teacherDocRef = doc(db, "teachers", teacherId);
+        const teacherDocSnap = await getDoc(teacherDocRef);
+
+        if (teacherDocSnap.exists()) {
+          const teacherDetails = teacherDocSnap.data();
+          console.log("Teacher details found:", teacherDetails); // Logging teacher details
+          setUser({
+            ...userDocSnap.data(),
+            department: teacherDetails.department,
+            subjects: teacherDetails.subjects,
+          });
+        } else {
+          console.log("No teacher details found in Firestore for this user."); // Debugging log
+          Alert.alert("Error", "Teacher details not found!");
+        }
       } else {
+        console.log("No user found with the current UID."); // Debugging log
         Alert.alert("Error", "No such user!");
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      Alert.alert("Error", "Error fetching user data");
+      console.error("Error fetching user and teacher data:", error);
+      Alert.alert("Error", "Error fetching user and teacher data");
     }
   };
 
@@ -49,7 +66,7 @@ const TeacherHomeScreen = () => {
         ...doc.data(),
       }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
-      setNotices(noticesList.slice(0, 2));
+      setNotices(noticesList.slice(0, 2)); // Fetch the latest two notices
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
@@ -57,41 +74,42 @@ const TeacherHomeScreen = () => {
   };
 
   useEffect(() => {
-    fetchUser();
+    fetchUserAndTeacherDetails();
     fetchNotices();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchUser();
+    await fetchUserAndTeacherDetails();
     await fetchNotices();
     setRefreshing(false);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton}>
-          <FontAwesome name="bars" size={24} color="white" />
-        </TouchableOpacity>
-        <View>{user && <Text style={styles.username}>{user.name}</Text>}</View>
-        <TouchableOpacity style={styles.iconButton}>
-          <FontAwesome name="bell" size={24} color="white" />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.headerContainer}>
+        <MaterialIcons name="school" size={28} color="black" />
+        <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
+        <MaterialIcons name="notifications" size={28} color="orange" style={styles.bellIcon} />
       </View>
+      <Text style={styles.subHeader}>
+        {user ? `Course:-${user.department}` : "Fetching details..."}
+      </Text>
+      {/* Subjects - ${user.subjects.join(", ")} */}
 
+      {/* below page  */}
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Notifications</Text>
+        <View style={styles.section1}>
+          <Text style={styles.sectionTitle1}>lectures</Text>
           {notices.map((notice) => (
             <TouchableOpacity
-            key={notice.id} 
-            style={styles.card}
+              key={notice.id}
+              style={styles.card}
               onPress={() => navigation.navigate("NoticeDetail", { notice })}
             >
               <View style={styles.cardTextContainer}>
@@ -105,8 +123,8 @@ const TeacherHomeScreen = () => {
           ))}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Links</Text>
+        <View style={styles.section2}>
+          <Text style={styles.sectionTitle}>Explore Dashboard</Text>
           <View style={styles.quickLinks}>
             <TouchableOpacity
               style={styles.quickLinkButton}
@@ -142,26 +160,33 @@ const TeacherHomeScreen = () => {
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("AttendanceScreen");
+                navigation.navigate("ViewTimetableScreen");
               }}
             >
-              <Text style={styles.quickLinkText}>AttendeacneScren</Text>
+              <Text style={styles.quickLinkText}> Timetable</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickLinkButton}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("CreateTimetableScreen");
+              }}
+            >
+              <Text style={styles.quickLinkText}> Create Timetable</Text>
+            </TouchableOpacity>
+
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Lectures</Text>
+        <View style={styles.section3}>
+          <Text style={styles.sectionTitle}>Updated Info</Text>
           <View style={styles.card}>
             <Text style={styles.cardText}>Enterprise Java </Text>
             <Text style={styles.cardText}>3 new assignments</Text>
             <MaterialIcons name="assignment" size={24} color="black" />
           </View>
-          <View style={styles.card}>
-            <Text style={styles.cardText}>Messages</Text>
-            <Text style={styles.cardText}>2 unread messages</Text>
-            <MaterialIcons name="message" size={24} color="black" />
-          </View>
+          
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -169,42 +194,69 @@ const TeacherHomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1, 
+    backgroundColor: "white",
+  },
   container: {
-    flex: 1,
-    // backgroundColor: "#f5f5f5",
-    backgroundColor: "transparent",
+    paddingHorizontal: 10,
+    backgroundColor: "#fff", 
+  },  
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // This will place the bell icon to the far right
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+  },
+  subHeader: {
+    fontSize: 18,
+    marginBottom: 6,
+    paddingHorizontal: 10,
   },
   header: {
-    backgroundColor: "#fff",
-    // backgroundColor:"#38ad5c",
-    padding: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginLeft: 10,
   },
   iconButton: {
     backgroundColor: "#000",
     color: "#fff",
     padding: 2,
   },
+  bellIcon: {
+    color: 'orange',
+  },
   usernameContainer: {
     flex: 1,
     alignItems: "center",
   },
-  username: {
-    color: "#000",
-    fontSize: 18,
-  },
-  section: {
+  section1: {
     marginVertical: 10,
     marginHorizontal: 10,
     paddingHorizontal: 8,
-    backgroundColor: "#e7e7e6",
+    backgroundColor: "#FE8441",
+    borderRadius: 16,
+  },
+  section2: {
+    marginVertical: 10,
+    marginHorizontal: 10,
+    paddingHorizontal: 8,
+    borderRadius: 3,
+  },
+  section3: {
+    marginVertical: 10,
+    marginHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 3,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    marginVertical: 10,
+  },
+  sectionTitle1: {
+    color: "white",
+    fontSize: 20,
     marginVertical: 10,
   },
   card: {
@@ -227,7 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   quickLinkButton: {
-    backgroundColor: "#38ad5c",
+    backgroundColor: "#FBEEE6",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
@@ -235,7 +287,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   quickLinkText: {
-    color: "#fff",
+    color: "#FF945B",
     fontSize: 16,
   },
 });

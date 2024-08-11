@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
-  Image,
   RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
