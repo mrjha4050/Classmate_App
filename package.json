@@ -20,6 +20,7 @@
     "expo-local-authentication": "~14.0.1",
     "expo-status-bar": "~1.12.1",
     "firebase": "^10.12.3",
+    "moment": "^2.30.1",
     "react": "18.2.0",
     "react-native": "0.74.3",
     "react-native-elements": "^3.4.3",
