@@ -1,4 +1,4 @@
-// src/screens/SignupScreen.js
+// SignupScreen.js
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -9,14 +9,13 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-} from "react-native";
-import { initializeApp } from "firebase/app";
+} from "react-native";  
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { firebaseConfig } from "../config";
 import { Picker } from "@react-native-picker/picker";
 import MultiSelect from "react-native-multiple-select";
 import { subjects } from "../components/subjects";
+import {auth, db} from '../config';
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -28,10 +27,6 @@ const SignupScreen = ({ navigation }) => {
   const [additionalInfo, setAdditionalInfo] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
   const handleSignup = async () => {
     if (email && password && name && (role !== "student" || rollNumber)) {
       setIsLoading(true);
@@ -41,7 +36,7 @@ const SignupScreen = ({ navigation }) => {
           setIsLoading(false);
           return;
         }
-  
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         const userDocRef = doc(db, "users", user.uid);
@@ -50,7 +45,7 @@ const SignupScreen = ({ navigation }) => {
           role: role,
           name: name,
         });
-  
+
         if (role === "student") {
           console.log("Additional Info:", additionalInfo); // Debugging line
           const studentDocRef = doc(db, "students", user.uid);
@@ -60,7 +55,7 @@ const SignupScreen = ({ navigation }) => {
             course: additionalInfo.course || "Unknown Course",
             year: additionalInfo.year || "Unknown Year",
           });
-          
+
         } else if (role === "teacher") {
           const teacherDocRef = doc(db, "teachers", user.uid);
           await setDoc(teacherDocRef, {
@@ -69,7 +64,7 @@ const SignupScreen = ({ navigation }) => {
             subjects: selectedSubjects,
           });
         }
-  
+
         Alert.alert("Success", "Signup Successful!");
         setIsLoading(false);
         navigation.navigate("Login1");
@@ -82,7 +77,7 @@ const SignupScreen = ({ navigation }) => {
       Alert.alert("Error", "Please enter all required fields");
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>

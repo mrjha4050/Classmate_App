@@ -1,53 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
-import { db } from '../config'; // Import the Firestore instance
-import { collection, getDocs } from 'firebase/firestore';
-import moment from 'moment'; // Import moment.js for date formatting
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, Button, Alert } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { db } from '../config'; 
+import { doc, getDoc } from 'firebase/firestore';
+import moment from 'moment'; 
 
 const ViewTimetableScreen = () => {
   const [timetable, setTimetable] = useState({});
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(moment().format('dddd'));
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');  // Default course
+  const [selectedYear, setSelectedYear] = useState('Third Year');  // Default year
 
   useEffect(() => {
-    const fetchTimetable = async () => {
-      const timetableCollection = collection(db, 'timetable');
-      const timetableSnapshot = await getDocs(timetableCollection);
-      const timetableData = {};
-      timetableSnapshot.forEach((doc) => {
-        timetableData[doc.id] = doc.data();
-      });
-
-      // Sorting each day's lectures by time slot
-      Object.keys(timetableData).forEach(day => {
-        timetableData[day] = Object.entries(timetableData[day])
-          .sort(([a], [b]) => {
-            const timeA = a.split('-')[0];
-            const timeB = b.split('-')[0];
-            return timeA.localeCompare(timeB);
-          })
-          .reduce((obj, [key, value]) => {
-            obj[key] = value;
-            return obj;
-          }, {});
-      });
-
-      setTimetable(timetableData);
-
-      // Calculate the next 7 days for the top section
-      const today = moment();
-      const nextDays = [];
-      for (let i = 0; i < 7; i++) {
-        nextDays.push({
-          date: today.clone().add(i, 'days').format('YYYY-MM-DD'),
-          day: today.clone().add(i, 'days').format('dddd'),
-        });
-      }
-      setDays(nextDays);
-    };
-
     fetchTimetable();
-  }, []);
+  }, [selectedCourse, selectedYear, selectedDay]);
+
+  const fetchTimetable = async () => {
+    try {
+      const docRef = doc(db, `timetable/${selectedCourse}/${selectedYear}/${selectedDay}`);
+      const docSnapshot = await getDoc(docRef);
+
+      if (docSnapshot.exists()) {
+        console.log('Timetable Data:', docSnapshot.data());
+        setTimetable(docSnapshot.data());
+      } else {
+        console.log('No timetable found for this selection.');
+        setTimetable({});  // No data available for this selection
+      }
+    } catch (error) {
+      console.error("Error fetching timetable: ", error);
+      Alert.alert("Error", "Failed to fetch timetable data.");
+    }
+
+    const today = moment();
+    const nextDays = [];
+    for (let i = 0; i < 7; i++) {
+      nextDays.push({
+        date: today.clone().add(i, 'days').format('YYYY-MM-DD'),
+        day: today.clone().add(i, 'days').format('dddd'),
+      });
+    }
+    setDays(nextDays);
+  };
 
   const renderDayItem = ({ item }) => {
     const isSelected = item.day === selectedDay;
@@ -65,26 +61,67 @@ const ViewTimetableScreen = () => {
 
   return (
     <View style={styles.container}>
-
+      {/* Touchable view that opens the modal */}
+      <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
+        <Text style={styles.label}>Select Course and Year</Text>
+        <Text style={styles.selectionText}>{selectedCourse} - {selectedYear}</Text>
+      </TouchableOpacity>
+  
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalLabel}>Select Course:</Text>
+            <Picker
+              selectedValue={selectedCourse}
+              onValueChange={(itemValue) => setSelectedCourse(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Bsc.IT" value="Bsc.IT" />
+              <Picker.Item label="BMS" value="BMS" />
+              <Picker.Item label="B.Com" value="B.Com" />
+            </Picker>
+  
+            <Text style={styles.modalLabel}>Select Year:</Text>
+            <Picker
+              selectedValue={selectedYear}
+              onValueChange={(itemValue) => setSelectedYear(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="First Year" value="First Year" />
+              <Picker.Item label="Second Year" value="Second Year" />
+              <Picker.Item label="Third Year" value="Third Year" />
+            </Picker>
+  
+            <Button title="Done" onPress={() => setModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+  
       <View style={styles.dayBarContainer}>
         <FlatList
           data={days}
           horizontal
           renderItem={renderDayItem}
-          keyExtractor={(item) => item.date + item.day} // Ensure uniqueness
+          keyExtractor={(item) => item.date + item.day} 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.dayBar}
         />
       </View>
-
+  
       <ScrollView style={styles.contentContainer}>
-        {timetable[selectedDay] ? (
+        {timetable.lectures && timetable.lectures.length > 0 ? (
           <View style={styles.dayContainer}>
-            {Object.keys(timetable[selectedDay]).map((timeSlot, index) => (
+            {timetable.lectures.map((lecture, index) => (
               <View key={index} style={styles.classContainer}>
-                <Text style={styles.subjectText}>Subject - <Text style={styles.subjectName}>{timetable[selectedDay][timeSlot].subject}</Text></Text>
-                <Text style={styles.timeText}>Time - <Text style={styles.timeRange}>{timeSlot}</Text></Text>
-                <Text style={styles.locationText}>Location - <Text style={styles.locationName}>{timetable[selectedDay][timeSlot].location}</Text></Text>
+                <Text style={styles.subjectText}>Subject - <Text style={styles.subjectName}>{lecture.subject}</Text></Text>
+                <Text style={styles.timeText}>Time - <Text style={styles.timeRange}>{lecture.timeSlot}</Text></Text>
+                <Text style={styles.locationText}>Location - <Text style={styles.locationName}>{lecture.location}</Text></Text>
+                <Text style={styles.teacherText}>Teacher - <Text style={styles.teacherName}>{lecture.teacher}</Text></Text>
               </View>
             ))}
           </View>
@@ -103,11 +140,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
-  header: {
-    fontSize: 28,
+  selectionView: {
+    padding: 15,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    margin: 10,
+  },
+  label: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 10,
-    marginLeft: 15,
+  },
+  selectionText: {
+    fontSize: 16,
+    marginTop: 5,
+    color: '#888',
   },
   dayBarContainer: {
     marginVertical: 10,
@@ -161,7 +207,7 @@ const styles = StyleSheet.create({
   dayContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: '#F2994A',
+    // backgroundColor: '#F2994A',
     marginVertical: 5,
     borderRadius: 10,
   },
@@ -179,6 +225,7 @@ const styles = StyleSheet.create({
   },
   subjectName: {
     color: '#2D9CDB',
+    // color: '#fff',
   },
   timeText: {
     fontSize: 16,
@@ -201,6 +248,33 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    elevation: 5,  
+    shadowColor: '#000',  
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  modalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginVertical: 10,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
   },
 });
 

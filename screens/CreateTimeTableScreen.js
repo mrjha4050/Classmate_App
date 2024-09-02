@@ -232,13 +232,12 @@ const CreateTimetableScreen = () => {
         "Unsaved Changes",
         "You have unsaved changes. Do you want to save them before leaving?",
         [
-          { text: "Don't Save", onPress: () => {/* Logic to navigate away */} },
+          { text: "Don't Save", onPress: () => {} },
           { text: "Save", onPress: handleSaveTimetable },
           { text: "Cancel", style: "cancel" },
         ]
       );
     } else {
-      // Logic to navigate away
     }
   };
   
@@ -291,7 +290,7 @@ const CreateTimetableScreen = () => {
     setIsBreak(lecture.subject === 'Break');
     setIsEditing(true);
     setEditingIndex(index);
-    setHasChanges(true); // Mark that changes have been made
+    setHasChanges(true); 
   };
   return (
     <View style={styles.mainContainer}>

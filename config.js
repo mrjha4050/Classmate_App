@@ -1,12 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore"; 
+import { getFirestore } from "firebase/firestore";
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
-export const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyAQt3wC9b3D11kTpYxAQ5tLTSxjRbuTyxE",
   authDomain: "campusconnect-a9fd9.firebaseapp.com",
+  databaseURL: "https://campusconnect-a9fd9-default-rtdb.firebaseio.com",
   projectId: "campusconnect-a9fd9",
   storageBucket: "campusconnect-a9fd9.appspot.com",
   messagingSenderId: "856272800171",

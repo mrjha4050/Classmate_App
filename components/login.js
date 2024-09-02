@@ -1,3 +1,4 @@
+// LoginScreen.js
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -8,24 +9,15 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-} from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
-import { firebaseConfig } from '../config'; // Ensure the correct path to your config file
+import {auth, db} from '../config';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
 
   const handleLogin = async () => {
     if (email && password) {
@@ -72,7 +64,7 @@ const LoginScreen = ({ navigation }) => {
       }
     } else {
       Alert.alert('Error', 'Please enter both email and password');
-    } 
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -130,13 +122,6 @@ const LoginScreen = ({ navigation }) => {
       >
         <Text style={styles.signupRedirectText}>Forgot Password? Don't worry</Text>
       </TouchableOpacity>
-
-      {/* <TouchableOpacity
-        onPress={() => navigation.navigate('Signupscreen')}
-        style={styles.signupRedirect}
-      >
-        <Text style={styles.signupRedirectText}>New User ?</Text>
-      </TouchableOpacity> */}
     </SafeAreaView>
   );
 };
