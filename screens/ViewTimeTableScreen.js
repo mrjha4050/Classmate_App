@@ -1,21 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, Button, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { db } from '../config'; 
+import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-import moment from 'moment'; 
+import moment from 'moment';
 
 const ViewTimetableScreen = () => {
   const [timetable, setTimetable] = useState({});
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(moment().format('dddd'));
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');  // Default course
-  const [selectedYear, setSelectedYear] = useState('Third Year');  // Default year
+  const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');
+  const [selectedYear, setSelectedYear] = useState('Third Year');
+  const [teacherAvailability, setTeacherAvailability] = useState({});
 
   useEffect(() => {
     fetchTimetable();
   }, [selectedCourse, selectedYear, selectedDay]);
+
+  useEffect(() => {
+    fetchAllLecturesForDay(selectedDay).then(allLectures => {
+      const availability = determineTeacherFreeSlots(allLectures);
+      setTeacherAvailability(availability);
+    });
+  }, [selectedDay]);
 
   const fetchTimetable = async () => {
     try {
@@ -27,7 +35,7 @@ const ViewTimetableScreen = () => {
         setTimetable(docSnapshot.data());
       } else {
         console.log('No timetable found for this selection.');
-        setTimetable({});  // No data available for this selection
+        setTimetable({});
       }
     } catch (error) {
       console.error("Error fetching timetable: ", error);
@@ -45,6 +53,75 @@ const ViewTimetableScreen = () => {
     setDays(nextDays);
   };
 
+  const fetchAllLecturesForDay = async (selectedDay) => {
+    const courses = ["Bsc.IT", "BMS", "BCA", "B.Com"];
+    const years = ["First Year", "Second Year", "Third Year"];
+    let allLectures = [];
+    const excludedTeachers = ["Anshika", "Jaymala"];
+  
+    try {
+      for (let course of courses) {
+        for (let year of years) {
+          const path = `timetable/${course}/${year}/${selectedDay}`;
+          const dayDocRef = doc(db, path);
+          const docSnap = await getDoc(dayDocRef);
+  
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const filteredLectures = data.lectures.filter(lecture => !excludedTeachers.includes(lecture.teacher));
+            allLectures.push(...filteredLectures);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching all lectures: ", error);
+    }
+    return allLectures;
+  };  
+
+  const determineTeacherFreeSlots = (allLectures) => {
+    const teacherSlots = {};
+    const operatingHoursStart = 7; // 8 AM
+    const operatingHoursEnd = 14; // 2 PM
+    const excludedTeachers = ["Anshika", "Jaymala"];
+  
+    allLectures.forEach((lecture) => {
+      const teacher = lecture.teacher;
+      if (excludedTeachers.includes(teacher)) return;
+  
+      if (!teacherSlots[teacher]) {
+        teacherSlots[teacher] = Array.from({ length: operatingHoursEnd - operatingHoursStart }, (_, i) => true); // true means available
+      }
+  
+      const [start, end] = lecture.timeSlot.split("-");
+      const startHour = parseInt(start.split(":")[0]);
+      const endHour = parseInt(end.split(":")[0]);
+  
+      for (let hour = startHour; hour < endHour; hour++) {
+        if (hour >= operatingHoursStart && hour < operatingHoursEnd) {
+          teacherSlots[teacher][hour - operatingHoursStart] = false; // mark as not available
+        }
+      }
+    });
+  
+    // Convert availability to readable format
+    const formattedSlots = {};
+    Object.keys(teacherSlots).forEach(teacher => {
+      formattedSlots[teacher] = [];
+      teacherSlots[teacher].forEach((isFree, index) => {
+        if (isFree) {
+          formattedSlots[teacher].push(`${index + operatingHoursStart}:00 - ${index + operatingHoursStart + 1}:00`);
+        }
+      });
+      if (formattedSlots[teacher].length === 0) {
+        formattedSlots[teacher].push('No free slots available');
+      }
+    });
+  
+    return formattedSlots;
+  };
+  
+
   const renderDayItem = ({ item }) => {
     const isSelected = item.day === selectedDay;
     return (
@@ -61,12 +138,11 @@ const ViewTimetableScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Touchable view that opens the modal */}
       <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
         <Text style={styles.label}>Select Course and Year</Text>
         <Text style={styles.selectionText}>{selectedCourse} - {selectedYear}</Text>
       </TouchableOpacity>
-  
+
       <Modal
         transparent={true}
         animationType="slide"
@@ -85,7 +161,7 @@ const ViewTimetableScreen = () => {
               <Picker.Item label="BMS" value="BMS" />
               <Picker.Item label="B.Com" value="B.Com" />
             </Picker>
-  
+
             <Text style={styles.modalLabel}>Select Year:</Text>
             <Picker
               selectedValue={selectedYear}
@@ -96,24 +172,33 @@ const ViewTimetableScreen = () => {
               <Picker.Item label="Second Year" value="Second Year" />
               <Picker.Item label="Third Year" value="Third Year" />
             </Picker>
-  
+
             <Button title="Done" onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>
-  
+
       <View style={styles.dayBarContainer}>
         <FlatList
           data={days}
           horizontal
           renderItem={renderDayItem}
-          keyExtractor={(item) => item.date + item.day} 
+          keyExtractor={(item) => item.date + item.day}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.dayBar}
         />
       </View>
-  
+
       <ScrollView style={styles.contentContainer}>
+        {Object.entries(teacherAvailability).map(([teacher, slots]) => (
+          <View key={teacher} style={styles.teacherContainer}>
+            <Text style={styles.teacherName}>{teacher}</Text>
+            <Text style={styles.availabilityText}>Available slots:</Text>
+            {slots.map((slot, index) => (
+              <Text key={index} style={styles.timeSlot}>{slot}</Text>
+            ))}
+          </View>
+        ))}
         {timetable.lectures && timetable.lectures.length > 0 ? (
           <View style={styles.dayContainer}>
             {timetable.lectures.map((lecture, index) => (
@@ -136,6 +221,7 @@ const ViewTimetableScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // Add your existing styles here
   container: {
     flex: 1,
     backgroundColor: '#FFF',
@@ -207,7 +293,6 @@ const styles = StyleSheet.create({
   dayContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    // backgroundColor: '#F2994A',
     marginVertical: 5,
     borderRadius: 10,
   },
@@ -225,7 +310,6 @@ const styles = StyleSheet.create({
   },
   subjectName: {
     color: '#2D9CDB',
-    // color: '#fff',
   },
   timeText: {
     fontSize: 16,
@@ -275,6 +359,20 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
+  },
+  teacherContainer: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    marginBottom: 10,
+  },
+  teacherName: {
+    fontWeight: 'bold',
+  },
+  availabilityText: {
+    fontStyle: 'italic',
+  },
+  timeSlot: {
+    color: '#2D9CDB',
   },
 });
 
