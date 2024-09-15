@@ -37,16 +37,13 @@ const LoginScreen = ({ navigation }) => {
           Alert.alert('Success', 'Login Successful!');
           setIsLoading(false);
 
-          // Navigate based on role
           if (role === 'student') {
-            // Fetch additional student info if needed
             const studentDocRef = doc(db, 'students', user.uid);
             const studentDoc = await getDoc(studentDocRef);
             const studentData = studentDoc.exists() ? studentDoc.data() : {};
 
             navigation.navigate('Home', { email: user.email, ...studentData });
           } else if (role === 'teacher') {
-            // Fetch additional teacher info if needed
             const teacherDocRef = doc(db, 'teachers', user.uid);
             const teacherDoc = await getDoc(teacherDocRef);
             const teacherData = teacherDoc.exists() ? teacherDoc.data() : {};

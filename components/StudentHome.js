@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -12,7 +11,6 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { db } from "../config";
-// import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Haptics from "expo-haptics";
