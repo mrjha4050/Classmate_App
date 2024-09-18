@@ -146,6 +146,17 @@ const TeacherHomeScreen = ({ route }) => {
               <Text style={styles.quickLinkText}>Profile</Text>
             </TouchableOpacity>
 
+
+            <TouchableOpacity
+              style={styles.quickLinkButton}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                navigation.navigate("Teacherslot");
+              }}
+            >
+              <Text style={styles.quickLinkText}>Teacher's Slot</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={async () => {

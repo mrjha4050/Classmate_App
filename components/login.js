@@ -1,4 +1,4 @@
-// LoginScreen.js
+//Loginscreen
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -12,7 +12,7 @@ import {
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
-import {auth, db} from '../config';
+import {auth, db} from '../config'; // Make sure this is imported correctly
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -20,61 +20,60 @@ const LoginScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (email && password) {
-      setIsLoading(true);
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Get user role from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const role = userData.role;
-
-          Alert.alert('Success', 'Login Successful!');
-          setIsLoading(false);
-
-          if (role === 'student') {
-            const studentDocRef = doc(db, 'students', user.uid);
-            const studentDoc = await getDoc(studentDocRef);
-            const studentData = studentDoc.exists() ? studentDoc.data() : {};
-
-            navigation.navigate('Home', { email: user.email, ...studentData });
-          } else if (role === 'teacher') {
-            const teacherDocRef = doc(db, 'teachers', user.uid);
-            const teacherDoc = await getDoc(teacherDocRef);
-            const teacherData = teacherDoc.exists() ? teacherDoc.data() : {};
-
-            navigation.navigate('TeacherHomeScreen', { email: user.email, ...teacherData });
-          }
-        } else {
-          Alert.alert('Error', 'User data not found.');
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error logging in:', error);
-        Alert.alert('Error', 'Failed to login. Please try again.');
-        setIsLoading(false);
-      }
-    } else {
+    if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Fetch user role from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (!userDocSnap.exists()) {
+        throw new Error('User data not found.');
+      }
+
+      const userData = userDocSnap.data();
+      console.log("User data:", userData); // Logging user data
+      Alert.alert('Success', 'Login Successful!');
+
+      // Redirect based on user role
+      if (userData.role === 'student') {
+        navigation.navigate('Home', { email: user.email, ...userData });
+      } else if (userData.role === 'teacher') {
+        const teacherDocRef = doc(db, 'teachers', user.uid);
+        const teacherDocSnap = await getDoc(teacherDocRef);
+        if (!teacherDocSnap.exists()) {
+          throw new Error('Teacher details not found.');
+        }
+
+        const teacherData = teacherDocSnap.data();
+        console.log("Teacher details found:", teacherData); // Logging teacher details
+        navigation.navigate('TeacherHomeScreen', { email: user.email, ...teacherData });
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error logging in:', error);
+      Alert.alert('Error', error.message || 'Failed to login. Please try again.');
+      setIsLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (email) {
-      try {
-        await sendPasswordResetEmail(auth, email);
-        Alert.alert('Success', 'Password reset email sent!');
-      } catch (error) {
-        console.error('Error sending password reset email:', error);
-        Alert.alert('Error', 'Failed to send password reset email. Please try again.');
-      }
-    } else {
+    if (!email) {
       Alert.alert('Error', 'Please enter your email');
+      return; 
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Success', 'Password reset email sent!');
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      Alert.alert('Error', 'Failed to send password reset email. Please try again.');
     }
   };
 

@@ -15,6 +15,7 @@ import TeacherHomeScreen from './screens/TeacherHomeScreen';
 import { AuthProvider } from './AuthContext';
 import CreateTimetableScreen from './screens/CreateTimeTableScreen';
 import ViewTimetableScreen from './screens/ViewTimeTableScreen';
+import Teacherslot from './screens/Teacherslot';
 
 const Stack = createStackNavigator();
 
@@ -57,6 +58,8 @@ export default function App() {
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
           <Stack.Screen name="CreateTimetableScreen" component={CreateTimetableScreen} />
           <Stack.Screen name="ViewTimetableScreen" component={ViewTimetableScreen} />
+          <Stack.Screen name="Teacherslot" component={Teacherslot} />
+
 
         </Stack.Navigator>
       </NavigationContainer>

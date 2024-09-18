@@ -18,13 +18,6 @@ const ViewTimetableScreen = () => {
     fetchTimetable();
   }, [selectedCourse, selectedYear, selectedDay]);
 
-  useEffect(() => {
-    fetchAllLecturesForDay(selectedDay).then(allLectures => {
-      const availability = determineTeacherFreeSlots(allLectures);
-      setTeacherAvailability(availability);
-    });
-  }, [selectedDay]);
-
   const fetchTimetable = async () => {
     try {
       const docRef = doc(db, `timetable/${selectedCourse}/${selectedYear}/${selectedDay}`);
@@ -78,48 +71,6 @@ const ViewTimetableScreen = () => {
     }
     return allLectures;
   };  
-
-  const determineTeacherFreeSlots = (allLectures) => {
-    const teacherSlots = {};
-    const operatingHoursStart = 7; // 8 AM
-    const operatingHoursEnd = 14; // 2 PM
-    const excludedTeachers = ["Anshika", "Jaymala"];
-  
-    allLectures.forEach((lecture) => {
-      const teacher = lecture.teacher;
-      if (excludedTeachers.includes(teacher)) return;
-  
-      if (!teacherSlots[teacher]) {
-        teacherSlots[teacher] = Array.from({ length: operatingHoursEnd - operatingHoursStart }, (_, i) => true); // true means available
-      }
-  
-      const [start, end] = lecture.timeSlot.split("-");
-      const startHour = parseInt(start.split(":")[0]);
-      const endHour = parseInt(end.split(":")[0]);
-  
-      for (let hour = startHour; hour < endHour; hour++) {
-        if (hour >= operatingHoursStart && hour < operatingHoursEnd) {
-          teacherSlots[teacher][hour - operatingHoursStart] = false; // mark as not available
-        }
-      }
-    });
-  
-    // Convert availability to readable format
-    const formattedSlots = {};
-    Object.keys(teacherSlots).forEach(teacher => {
-      formattedSlots[teacher] = [];
-      teacherSlots[teacher].forEach((isFree, index) => {
-        if (isFree) {
-          formattedSlots[teacher].push(`${index + operatingHoursStart}:00 - ${index + operatingHoursStart + 1}:00`);
-        }
-      });
-      if (formattedSlots[teacher].length === 0) {
-        formattedSlots[teacher].push('No free slots available');
-      }
-    });
-  
-    return formattedSlots;
-  };
   
 
   const renderDayItem = ({ item }) => {
@@ -190,15 +141,6 @@ const ViewTimetableScreen = () => {
       </View>
 
       <ScrollView style={styles.contentContainer}>
-        {Object.entries(teacherAvailability).map(([teacher, slots]) => (
-          <View key={teacher} style={styles.teacherContainer}>
-            <Text style={styles.teacherName}>{teacher}</Text>
-            <Text style={styles.availabilityText}>Available slots:</Text>
-            {slots.map((slot, index) => (
-              <Text key={index} style={styles.timeSlot}>{slot}</Text>
-            ))}
-          </View>
-        ))}
         {timetable.lectures && timetable.lectures.length > 0 ? (
           <View style={styles.dayContainer}>
             {timetable.lectures.map((lecture, index) => (
