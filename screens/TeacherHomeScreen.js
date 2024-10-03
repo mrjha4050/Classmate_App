@@ -1,4 +1,3 @@
-// src/screens/TeacherHomeScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -12,48 +11,118 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { db } from "../config";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { getMessaging, send } from "firebase/messaging"; // For sending notifications
 
 const TeacherHomeScreen = ({ route }) => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);            
   const auth = getAuth();
-
+  
   const fetchUserAndTeacherDetails = async () => {
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
-        console.log("User data:", userDocSnap.data()); // Logging user data
         const teacherId = auth.currentUser.uid;
         const teacherDocRef = doc(db, "teachers", teacherId);
         const teacherDocSnap = await getDoc(teacherDocRef);
 
         if (teacherDocSnap.exists()) {
           const teacherDetails = teacherDocSnap.data();
-          console.log("Teacher details found:", teacherDetails); // Logging teacher details
           setUser({
             ...userDocSnap.data(),
             department: teacherDetails.department,
             subjects: teacherDetails.subjects,
           });
+          
+          await checkAttendance(teacherId);
         } else {
-          console.log("No teacher details found in Firestore for this user."); // Debugging log
           Alert.alert("Error", "Teacher details not found!");
         }
       } else {
-        console.log("No user found with the current UID."); // Debugging log
         Alert.alert("Error", "No such user!");
       }
     } catch (error) {
       console.error("Error fetching user and teacher data:", error);
       Alert.alert("Error", "Error fetching user and teacher data");
+    }
+  };
+
+  const checkAttendance = async (teacherId) => {
+    const today = getCurrentDate();
+    const attendanceRef = doc(db, "attendance", teacherId);
+    const attendanceSnap = await getDoc(attendanceRef);
+    
+    if (!attendanceSnap.exists() || attendanceSnap.data().date !== today) {
+      promptAttendance(teacherId, today);
+    }
+  };
+
+  // Get the current date in YYYY-MM-DD format
+  const getCurrentDate = () => {
+    const date = new Date();
+    return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  };
+
+  // Prompt the teacher to mark attendance
+  const promptAttendance = (teacherId, today) => {
+    Alert.alert(
+      "Attendance",
+      "Are you present or absent today?",
+      [
+        {
+          text: "Present",
+          onPress: () => markAttendance(teacherId, today, "present"),
+        },
+        {
+          text: "Absent",
+          onPress: () => markAttendance(teacherId, today, "absent"),
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  // Mark attendance in Firebase and send notification if absent
+  const markAttendance = async (teacherId, date, status) => {
+    try {
+      await setDoc(doc(db, "attendance", teacherId), {
+        date: date,
+        status: status,
+      });
+
+      if (status === "absent") {
+        sendAbsentNotification();
+      }
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      Alert.alert("Error", "Error marking attendance");
+    }
+  };
+
+  // Send notification to all teachers about absence
+  const sendAbsentNotification = async () => {
+    try {
+      const messaging = getMessaging();
+      const message = {
+        notification: {
+          title: "Teacher Absent",
+          body: `${user.name} is absent today.`,
+        },
+        topic: "all-teachers",
+      };
+      
+      await send(messaging, message);
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      Alert.alert("Error", "Error sending absence notification");
     }
   };
 
@@ -65,7 +134,7 @@ const TeacherHomeScreen = ({ route }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
+      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
       setNotices(noticesList.slice(0, 2)); // Fetch the latest two notices
     } catch (error) {
       console.error("Error fetching notices:", error);
@@ -95,9 +164,7 @@ const TeacherHomeScreen = ({ route }) => {
       <Text style={styles.subHeader}>
         {user ? `Course:-${user.department}` : "Fetching details..."}
       </Text>
-      {/* Subjects - ${user.subjects.join(", ")} */}
 
-      {/* below page  */}
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
@@ -105,7 +172,7 @@ const TeacherHomeScreen = ({ route }) => {
         }
       >
         <View style={styles.section1}>
-          <Text style={styles.sectionTitle1}>lectures</Text>
+          <Text style={styles.sectionTitle1}>Lectures</Text>
           {notices.map((notice) => (
             <TouchableOpacity
               key={notice.id}
@@ -126,7 +193,7 @@ const TeacherHomeScreen = ({ route }) => {
         <View style={styles.section2}>
           <Text style={styles.sectionTitle}>Explore Dashboard</Text>
           <View style={styles.quickLinks}>
-            <TouchableOpacity
+          <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -186,18 +253,16 @@ const TeacherHomeScreen = ({ route }) => {
             >
               <Text style={styles.quickLinkText}> Create Timetable</Text>
             </TouchableOpacity>
-
           </View>
         </View>
 
         <View style={styles.section3}>
           <Text style={styles.sectionTitle}>Updated Info</Text>
           <View style={styles.card}>
-            <Text style={styles.cardText}>Enterprise Java </Text>
+            <Text style={styles.cardText}>Enterprise Java</Text>
             <Text style={styles.cardText}>3 new assignments</Text>
             <MaterialIcons name="assignment" size={24} color="black" />
           </View>
-          
         </View>
       </ScrollView>
     </SafeAreaView>

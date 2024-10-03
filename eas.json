@@ -18,6 +18,7 @@
       "channel": "production"
     }
   },
+  
   "submit": {
     "production": {}
   }
