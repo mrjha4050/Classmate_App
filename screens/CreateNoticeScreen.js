@@ -13,6 +13,9 @@ import { collection, addDoc ,getDoc, doc} from "firebase/firestore";
 import { db } from "../config";
 import { getAuth } from "firebase/auth"; 
 import * as Haptics from "expo-haptics";
+import * as Notifications from 'expo-notifications';
+import { getDocs } from "firebase/firestore";
+
 
 const CreateNoticeScreen = ({ navigation }) => {
   const [title, setTitle] = useState("");
@@ -42,10 +45,19 @@ const CreateNoticeScreen = ({ navigation }) => {
     fetchUser();
   }, []);
 
+  const sendNotificationsToAllUsers = async () => {
+    const tokensCollectionRef = collection(db, "tokens");
+    const snapshot = await getDocs(tokensCollectionRef);
+    snapshot.forEach((doc) => {
+      const token = doc.data().token;
+      console.log("Sending notification to token:", token);
+    });
+  };
+
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
       try {
-        const currentDate = new Date().toISOString(); // Automatically assign current date and time
+        const currentDate = new Date().toISOString();
         await addDoc(collection(db, "notices"), {
           title,
           date: currentDate,
@@ -55,10 +67,11 @@ const CreateNoticeScreen = ({ navigation }) => {
           readBy: [],
         });
         Alert.alert("Success", "Notice created successfully!");
+        sendNotificationsToAllUsers();  // Call to send notifications after notice creation
         navigation.goBack();
       } catch (error) {
+        console.error("Error creating notice:", error);
         Alert.alert("Error", "Failed to create notice. Please try again.");
-        console.error(error);
       }
     } else {
       Alert.alert("Error", "Please fill out all fields");

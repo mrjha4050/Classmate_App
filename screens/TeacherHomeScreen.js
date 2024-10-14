@@ -13,17 +13,33 @@ import { useNavigation } from "@react-navigation/native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import * as Notifications from 'expo-notifications'; // Import Expo Notifications
 import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { getMessaging, send } from "firebase/messaging"; // For sending notifications
+
+// Set up the notification handler to display notifications in the app
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 const TeacherHomeScreen = ({ route }) => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);            
+  const [refreshing, setRefreshing] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState('');
   const auth = getAuth();
-  
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+    fetchUserAndTeacherDetails();
+    fetchNotices();
+  }, []);
+
   const fetchUserAndTeacherDetails = async () => {
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
@@ -40,6 +56,11 @@ const TeacherHomeScreen = ({ route }) => {
             ...userDocSnap.data(),
             department: teacherDetails.department,
             subjects: teacherDetails.subjects,
+          });
+          // Store the push token in Firestore for this teacher
+          await setDoc(teacherDocRef, {
+            expoPushToken: expoPushToken,
+            ...teacherDetails // Preserve other teacher data
           });
           
           await checkAttendance(teacherId);
@@ -108,24 +129,28 @@ const TeacherHomeScreen = ({ route }) => {
   };
 
   // Send notification to all teachers about absence
-  const sendAbsentNotification = async () => {
-    try {
-      const messaging = getMessaging();
-      const message = {
-        notification: {
-          title: "Teacher Absent",
-          body: `${user.name} is absent today.`,
-        },
-        topic: "all-teachers",
-      };
-      
-      await send(messaging, message);
-    } catch (error) {
-      console.error("Error sending notification:", error);
-      Alert.alert("Error", "Error sending absence notification");
-    }
-  };
+const sendAbsentNotification = async () => {
+  try {
+    const teachersSnapshot = await getDocs(collection(db, "teachers"));
+    const tokens = teachersSnapshot.docs
+      .map(doc => doc.data().expoPushToken)
+      .filter(token => token !== expoPushToken);  
 
+    tokens.forEach(async (token) => {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Teacher Absent",
+          body: `${user?.name} is absent today.`,
+          data: { someData: 'data' }
+        },
+        trigger: { seconds: 1 },  
+      });
+    });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    Alert.alert("Error", "Error sending absence notification");
+  }
+};
   const fetchNotices = async () => {
     try {
       const noticesCollection = collection(db, "notices");
@@ -134,7 +159,7 @@ const TeacherHomeScreen = ({ route }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
       setNotices(noticesList.slice(0, 2)); // Fetch the latest two notices
     } catch (error) {
       console.error("Error fetching notices:", error);
@@ -142,10 +167,22 @@ const TeacherHomeScreen = ({ route }) => {
     }
   };
 
-  useEffect(() => {
-    fetchUserAndTeacherDetails();
-    fetchNotices();
-  }, []);
+  // Register for push notifications
+  const registerForPushNotificationsAsync = async () => {
+    let token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      Alert.alert('Failed to get push token for push notification!');
+      return;
+    }
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+    return token;
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -156,14 +193,14 @@ const TeacherHomeScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerContainer}>
-        <MaterialIcons name="school" size={28} color="black" />
-        <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
-        <MaterialIcons name="notifications" size={28} color="orange" style={styles.bellIcon} />
-      </View>
-      <Text style={styles.subHeader}>
-        {user ? `Course:-${user.department}` : "Fetching details..."}
-      </Text>
+    <View style={styles.headerContainer}>
+      <MaterialIcons name="school" size={28} color="black" />
+      <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
+      <MaterialIcons name="notifications" size={28} color="orange" style={styles.bellIcon} />
+    </View>
+    <Text style={styles.subHeader}>
+      {user ? `Course:-${user.department}` : "Fetching details..."}
+    </Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}

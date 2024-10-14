@@ -148,10 +148,10 @@ const HomeScreen = ({ route }) => {
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("CreateNoticeScreen");
+                navigation.navigate("TimeTableScreen");
               }}
             >
-              <Text style={styles.quickLinkText}>Dashboard</Text>
+              <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -161,7 +161,7 @@ const HomeScreen = ({ route }) => {
                 navigation.navigate("AttendanceScreen");
               }}
             >
-              <Text style={styles.quickLinkText}>Report</Text>
+              <Text style={styles.quickLinkText}>Attendance</Text>
             </TouchableOpacity>
           </View>
         </View>
