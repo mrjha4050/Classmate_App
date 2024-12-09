@@ -1,21 +1,22 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import SignInScreen from './components/start';
-import LoginScreen from './components/login';
-import HomeScreen from './components/StudentHome';
-import NoticePage from './screens/NoticePage';
-import ProfileScreen from './screens/ProfileScreen';
-import CreateNoticeScreen from './screens/CreateNoticeScreen';
-import NoticeDetail from './screens/NoticeDetail';
-import AttendanceScreen from './screens/AttendanceScreen';
-import TeacherProfile from './screens/TeacherProfileScreen';
-import SignupScreen from './screens/SignupScreen';
-import TeacherHomeScreen from './screens/TeacherHomeScreen';
-import { AuthProvider } from './AuthContext';
-import CreateTimetableScreen from './screens/CreateTimeTableScreen';
-import ViewTimetableScreen from './screens/ViewTimeTableScreen';
-import Teacherslot from './screens/Teacherslot';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import SignInScreen from "./components/start";
+import LoginScreen from "./components/login";
+import HomeScreen from "./components/StudentHome";
+import NoticePage from "./screens/NoticePage";
+import ProfileScreen from "./screens/ProfileScreen";
+import CreateNoticeScreen from "./screens/CreateNoticeScreen";
+import NoticeDetail from "./screens/NoticeDetail";
+import AttendanceScreen from "./screens/AttendanceScreen";
+import TeacherProfile from "./screens/TeacherProfileScreen";
+import SignupScreen from "./screens/SignupScreen";
+import TeacherHomeScreen from "./screens/TeacherHomeScreen";
+import { AuthProvider } from "./AuthContext";
+import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
+import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
+import Teacherslot from "./screens/Teacherslot";
+import BottomTabNavigator from "./navigation/BottomTabNavigator";
 
 const Stack = createStackNavigator();
 
@@ -39,6 +40,8 @@ export default function App() {
             component={SignupScreen}
             options={{ headerShown: false }}
           />
+
+          {/* <BottomTabNavigator>
           <Stack.Screen
             name="Home"
             component={HomeScreen}
@@ -46,23 +49,37 @@ export default function App() {
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+          </BottomTabNavigator> */}
+
+          <Stack.Screen
+            name="MainApp"
+            component={BottomTabNavigator} // Bottom Tab Navigator
+            options={{ headerShown: false }}
+          />
+
           <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
+
+          <Stack.Screen name="ViewTimeTable" component={ViewTimetableScreen} />
 
           <Stack.Screen
             name="CreateNoticeScreen"
             component={CreateNoticeScreen}
           />
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
-          <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen} options={{ headerShown: false }}
+          <Stack.Screen
+            name="TeacherHomeScreen"
+            component={TeacherHomeScreen}
+            options={{ headerShown: false }}
           />
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
-          <Stack.Screen name="CreateTimetableScreen" component={CreateTimetableScreen} />
-          <Stack.Screen name="ViewTimetableScreen" component={ViewTimetableScreen} />
+          <Stack.Screen
+            name="CreateTimetableScreen"
+            component={CreateTimetableScreen}
+          />
+
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
-
-
         </Stack.Navigator>
       </NavigationContainer>
-      </AuthProvider>
+    </AuthProvider>
   );
 }

@@ -10,12 +10,13 @@ import {
   RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { Card, Button } from "react-native-elements";
 
 const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -63,7 +64,7 @@ const HomeScreen = ({ route }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
+      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); 
       setNotices(noticesList.slice(0, 1));
     } catch (error) {
       console.error("Error fetching notices:", error);
@@ -138,20 +139,20 @@ const HomeScreen = ({ route }) => {
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("ProfileScreen");
+                navigation.navigate("ViewTimeTable");
               }}
             >
-              <Text style={styles.quickLinkText}>Profile</Text>
+              <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={async () => {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("TimeTableScreen");
+                navigation.navigate("ProfileScreen");
               }}
             >
-              <Text style={styles.quickLinkText}>TimeTable</Text>
+              <Text style={styles.quickLinkText}>Profile</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // This will place the bell icon to the far right
+    justifyContent: 'space-between',  
     paddingHorizontal: 10,
     paddingVertical: 15,
   },

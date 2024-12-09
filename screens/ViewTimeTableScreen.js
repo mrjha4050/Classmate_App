@@ -163,7 +163,6 @@ const ViewTimetableScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  // Add your existing styles here
   container: {
     flex: 1,
     backgroundColor: '#FFF',
