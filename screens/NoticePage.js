@@ -10,7 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+// import { useNavigation } from '@react-navigation/native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { AuthContext } from '../AuthContext';
 import { db } from '../config'; 

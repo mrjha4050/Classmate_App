@@ -48,7 +48,7 @@ const SignupScreen = ({ navigation }) => {
 
         if (role === "student") {
           console.log("Additional Info:", additionalInfo); // Debugging line
-          const studentDocRef = doc(db, "students", user.uid);
+          const studentDocRef = doc(db, "studentinfo", user.uid);
           await setDoc(studentDocRef, {
             userId: user.uid,
             rollNumber: rollNumber, 

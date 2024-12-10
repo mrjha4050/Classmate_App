@@ -1,6 +1,7 @@
 import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import 'react-native-gesture-handler';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import SignInScreen from "./components/start";
 import LoginScreen from "./components/login";
 import HomeScreen from "./components/StudentHome";
@@ -16,14 +17,14 @@ import { AuthProvider } from "./AuthContext";
 import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
-import BottomTabNavigator from "./navigation/BottomTabNavigator";
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
+          <NavigationContainer>
+
         <Stack.Navigator initialRouteName="SignIn">
           <Stack.Screen
             name="SignIn"
@@ -41,7 +42,6 @@ export default function App() {
             options={{ headerShown: false }}
           />
 
-          {/* <BottomTabNavigator>
           <Stack.Screen
             name="Home"
             component={HomeScreen}
@@ -49,13 +49,7 @@ export default function App() {
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-          </BottomTabNavigator> */}
 
-          <Stack.Screen
-            name="MainApp"
-            component={BottomTabNavigator} // Bottom Tab Navigator
-            options={{ headerShown: false }}
-          />
 
           <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
 

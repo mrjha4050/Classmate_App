@@ -9,14 +9,13 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from '@react-navigation/native';
+
 
 const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -36,7 +35,7 @@ const HomeScreen = ({ route }) => {
       }
 
       const studentId = userDocSnap.data().studentId || auth.currentUser.uid;
-      const studentDocRef = doc(db, "students", studentId);
+      const studentDocRef = doc(db, "studentinfo", studentId);
       const studentDocSnap = await getDoc(studentDocRef);
 
       if (studentDocSnap.exists()) {
@@ -95,8 +94,6 @@ const HomeScreen = ({ route }) => {
       {user ? `Class - ${user.course} || Roll No - ${user.rollNumber}` : "Fetching details..."}
     </Text>
 
-
-      {/* below page  */}
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={

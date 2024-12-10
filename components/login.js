@@ -1,4 +1,5 @@
 //Loginscreen
+
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -30,7 +31,6 @@ const LoginScreen = ({ navigation }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Fetch user role from Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
       if (!userDocSnap.exists()) {
@@ -41,7 +41,6 @@ const LoginScreen = ({ navigation }) => {
       console.log("User data:", userData); // Logging user data
       Alert.alert('Success', 'Login Successful!');
 
-      // Redirect based on user role
       if (userData.role === 'student') {
         navigation.navigate('Home', { email: user.email, ...userData });
       } else if (userData.role === 'teacher') {
@@ -52,7 +51,7 @@ const LoginScreen = ({ navigation }) => {
         }
 
         const teacherData = teacherDocSnap.data();
-        console.log("Teacher details found:", teacherData); // Logging teacher details
+        console.log("Teacher details found:", teacherData);  
         navigation.navigate('TeacherHomeScreen', { email: user.email, ...teacherData });
       }
       setIsLoading(false);

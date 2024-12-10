@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity } from '
 import { db } from '../config'; // Ensure this points to your Firebase config
 import { collection, doc, getDoc } from 'firebase/firestore';
 import moment from 'moment';
+import { createStackNavigator } from "@react-navigation/stack";
+
 
 const Teacherslot = () => {
   const [teachers, setTeachers] = useState([]);
@@ -64,7 +66,6 @@ const Teacherslot = () => {
       }
     });
 
-
     const freeSlots = {};
     Object.keys(teacherSlots).forEach((teacher) => {
       freeSlots[teacher] = teacherSlots[teacher].map((isFree, index) => {
@@ -124,7 +125,6 @@ const Teacherslot = () => {
 
   return (
     <View style={styles.container}>
-      {/* Horizontal Day Selector */}
       <FlatList
         data={days}
         renderItem={renderDayItem}
@@ -134,7 +134,6 @@ const Teacherslot = () => {
         contentContainerStyle={styles.daySelector}
       />
 
-      {/* Teacher Availability List */}
       <FlatList
         data={teachers}
         keyExtractor={item => item.teacher}
@@ -144,7 +143,6 @@ const Teacherslot = () => {
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

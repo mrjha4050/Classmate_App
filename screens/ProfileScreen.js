@@ -36,7 +36,7 @@ const ProfileScreen = () => {
           setRole(data.role);
 
           if (data.role === "student") {
-            const studentDocRef = doc(db, "students", auth.currentUser.uid);
+            const studentDocRef = doc(db, "studentinfo", auth.currentUser.uid);
             const studentDocSnap = await getDoc(studentDocRef);
             if (studentDocSnap.exists()) {
               const studentData = studentDocSnap.data();

@@ -9,15 +9,14 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+// import { useNavigation } from "@react-navigation/native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import * as Notifications from 'expo-notifications'; // Import Expo Notifications
+import * as Notifications from 'expo-notifications'; 
 import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
-// Set up the notification handler to display notifications in the app
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -47,7 +46,7 @@ const TeacherHomeScreen = ({ route }) => {
 
       if (userDocSnap.exists()) {
         const teacherId = auth.currentUser.uid;
-        const teacherDocRef = doc(db, "teachers", teacherId);
+        const teacherDocRef = doc(db, "teacherinfo", teacherId);
         const teacherDocSnap = await getDoc(teacherDocRef);
 
         if (teacherDocSnap.exists()) {
@@ -57,10 +56,9 @@ const TeacherHomeScreen = ({ route }) => {
             department: teacherDetails.department,
             subjects: teacherDetails.subjects,
           });
-          // Store the push token in Firestore for this teacher
           await setDoc(teacherDocRef, {
             expoPushToken: expoPushToken,
-            ...teacherDetails // Preserve other teacher data
+            ...teacherDetails  
           });
           
           await checkAttendance(teacherId);
@@ -78,7 +76,7 @@ const TeacherHomeScreen = ({ route }) => {
 
   const checkAttendance = async (teacherId) => {
     const today = getCurrentDate();
-    const attendanceRef = doc(db, "attendance", teacherId);
+    const attendanceRef = doc(db, "TeacherAttendance", teacherId);
     const attendanceSnap = await getDoc(attendanceRef);
     
     if (!attendanceSnap.exists() || attendanceSnap.data().date !== today) {
@@ -86,13 +84,11 @@ const TeacherHomeScreen = ({ route }) => {
     }
   };
 
-  // Get the current date in YYYY-MM-DD format
   const getCurrentDate = () => {
     const date = new Date();
-    return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    return date.toISOString().split('T')[0]; 
   };
 
-  // Prompt the teacher to mark attendance
   const promptAttendance = (teacherId, today) => {
     Alert.alert(
       "Attendance",
@@ -111,10 +107,9 @@ const TeacherHomeScreen = ({ route }) => {
     );
   };
 
-  // Mark attendance in Firebase and send notification if absent
   const markAttendance = async (teacherId, date, status) => {
     try {
-      await setDoc(doc(db, "attendance", teacherId), {
+      await setDoc(doc(db, "TeacherAttendance", teacherId), {
         date: date,
         status: status,
       });
@@ -160,14 +155,13 @@ const sendAbsentNotification = async () => {
         ...doc.data(),
       }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
-      setNotices(noticesList.slice(0, 2)); // Fetch the latest two notices
+      setNotices(noticesList.slice(0, 2));  
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
     }
   };
 
-  // Register for push notifications
   const registerForPushNotificationsAsync = async () => {
     let token;
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
