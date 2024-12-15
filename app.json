@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/Studenticon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/Studenticon.png",
       "resizeMode": "contain",

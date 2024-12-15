@@ -85,7 +85,7 @@ const Teacherslot = () => {
     setTeachers(Object.entries(teacherFreeSlots).map(([teacher, freeSlots]) => ({ teacher, freeSlots })));
   };
 
-  const renderTeacherInfo = ({ item }) => (
+  const renderteachersinfo = ({ item }) => (
     <View style={styles.teacherRow}>
       <Text style={styles.teacherName}>{item.teacher}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -137,7 +137,7 @@ const Teacherslot = () => {
       <FlatList
         data={teachers}
         keyExtractor={item => item.teacher}
-        renderItem={renderTeacherInfo}
+        renderItem={renderteachersinfo}
       />
     </View>
   );

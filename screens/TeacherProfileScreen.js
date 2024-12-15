@@ -1,177 +1,324 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { AuthContext } from '../AuthContext';
+import React, { useEffect, useState, useContext } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  FlatList,
+  TextInput,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { AuthContext } from "../AuthContext";
+import {
+  doc,
+  getDoc,
+  updateDocs,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../config";
 
 const TeacherProfile = () => {
-  const fetchTeacherProfile = async (teacherId) => {
-    const docRef = doc(db, 'teachers', teacherId);
-    const docSnap = await getDoc(docRef);
-    const { user } = useContext(AuthContext); 
-    const [teacherProfile, setTeacherProfile] = useState(null);
-  
-    if (docSnap.exists()) {
-      return docSnap.data();
-    } else {
-      console.log('No such document!');
+  const { user } = useContext(AuthContext);  
+  const [teacherName, setTeacherName] = useState("");
+  const [lectures, setLectures] = useState([]);
+  const [selectedDay, setSelectedDay] = useState(
+    new Date().toLocaleString("en-US", { weekday: "long" })
+  );
+  const [scheduleVisible, setScheduleVisible] = useState(false);  
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  const [teacherProfile, setTeacherProfile] = useState({});
+  const [newDepartment, setNewDepartment] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  const fetchTeacherName = async (teacherId) => {
+    try {
+      const userDocRef = doc(db, "users", teacherId);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        setTeacherName(userDocSnap.data().name || "Unknown");
+      } else {
+        Alert.alert("Error", "No user found for the teacher!");
+      }
+    } catch (error) {
+      console.error("Error fetching teacher name:", error);
+      Alert.alert("Error", "Failed to fetch teacher name.");
     }
+  };
+
+  const fetchLecturesByDayAndTeacher = async (day) => {
+    try {
+      if (!teacherName) {
+        console.warn("Teacher name is not available.");
+        return;
+      }
   
-    useEffect(() => {
-      const fetchData = async () => {
-        const profile = await fetchTeacherProfile(user.uid);
-        setTeacherProfile(profile);
+      // Reference the document for the specific day
+      const dayDocRef = doc(db, `timetable/Bsc.IT/Third Year/${day}`);
+      const dayDocSnap = await getDoc(dayDocRef);
   
-        // const studentList = await fetchStudentsForTeacher(user.uid);
-        // setStudents(studentList);
-      };
+      if (dayDocSnap.exists()) {
+        const dayData = dayDocSnap.data();
+        const allLectures = dayData.lectures || []; // Get the "lectures" array from the document
   
-      fetchData();
-    }, [user.uid]);
-  };  
+        // Filter lectures for the current teacher
+        const teacherLectures = allLectures.filter(
+          (lecture) => lecture.teacher === teacherName
+        );
+  
+        setLectures(teacherLectures); // Update the state with filtered lectures
+      } else {
+        console.warn(`No timetable found for day: ${day}`);
+        setLectures([]); // No lectures for the day
+      }
+    } catch (error) {
+      console.error("Error fetching lectures by day and teacher:", error);
+      Alert.alert("Error", `Failed to fetch lectures for ${day}`);
+    }
+  };
+
+  const fetchTeacherProfile = async () => {
+    try {
+      const teacherDocRef = doc(db, "teachersinfo", user.uid);
+      const teacherDocSnap = await getDoc(teacherDocRef);
+      if (teacherDocSnap.exists()) {
+        const data = teacherDocSnap.data();
+        setTeacherProfile(data);
+        setNewDepartment(data.department || "");
+        setNewPhone(data.phone || "");
+      }
+    } catch (error) {
+      console.error("Error fetching teacher profile:", error);
+      Alert.alert("Error", "Failed to fetch teacher profile.");
+    }
+  };
+
+  const updateTeacherProfile = async () => {
+    try {
+      const teacherDocRef = doc(db, "teachersinfo", user.uid);
+      await updateDoc(teacherDocRef, {
+        department: newDepartment,
+        phone: newPhone,
+      });
+      Alert.alert("Success", "Profile updated successfully!");
+      setEditProfileVisible(false);
+      fetchTeacherProfile();
+    } catch (error) {
+      console.error("Error updating teacher profile:", error);
+      Alert.alert("Error", "Failed to update profile.");
+    }
+  };
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchTeacherName(user.uid);
+      fetchTeacherProfile();
+      fetchLecturesByDayAndTeacher(selectedDay);
+    }
+  }, [user?.uid, selectedDay, teacherName]);
+
+  const getInitials = (name) => {
+    if (!name) return "??";
+    const nameParts = name.split(" ");
+    const initials = nameParts
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
+    return initials;
+  };
+
+  const renderLectureItem = ({ item }) => (
+    <View style={styles.lectureItem}>
+      <Text style={styles.lectureText}>
+        {item.subject} - {item.location}
+      </Text>
+      <Text style={styles.lectureText}>{item.timeSlot}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-
       <View style={styles.profileSection}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=2187&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }} // Replace with your image URL
-          style={styles.profileImage}
-        />
-        <Text style={styles.profileName}>Mansi </Text>
+        <View style={styles.initialsContainer}>
+          <Text style={styles.initialsText}>{getInitials(teacherName)}</Text>
+        </View>
+        <Text style={styles.profileName}>{teacherName || "Unknown"}</Text>
         <View style={styles.row}>
           <MaterialIcons name="schedule" size={16} color="gray" />
-          <Text style={styles.profileSubtitle}>Today's Schedule</Text>
+          <Text style={styles.profileSubtitle}>
+            Department: {teacherProfile.department || "N/A"}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.infoSection}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Monday</Text>
-          <Text style={styles.infoLabel}>5 Lectures</Text>
-        </View>
+      <View style={styles.daySelector}>
+        {days.map((day) => (
+          <TouchableOpacity
+            key={day}
+            style={[
+              styles.dayButton,
+              selectedDay === day && styles.dayButtonSelected,
+            ]}
+            onPress={() => setSelectedDay(day)}
+          >
+            <Text
+              style={[
+                styles.dayButtonText,
+                selectedDay === day && styles.dayButtonTextSelected,
+              ]}
+            >
+              {day}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <TouchableOpacity style={styles.upgradeButton}>
-        <Text style={styles.upgradeButtonText}>Edit Profile</Text>
+      <TouchableOpacity
+        style={styles.viewAllButton}
+        onPress={() => setScheduleVisible(true)}
+      >
+        <Text style={styles.viewAllButtonText}>View Schedule</Text>
       </TouchableOpacity>
 
-      <View style={styles.performanceSection}>
-        <Text style={styles.performanceTitle}>Overall Performance</Text>
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Completed Courses</Text>
-          <Text style={styles.performanceValue}>5</Text>
+      <TouchableOpacity
+        style={styles.editProfileButton}
+        onPress={() => setEditProfileVisible(true)}
+      >
+        <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
+
+      {/* Schedule Modal */}
+      <Modal visible={scheduleVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Schedule for {selectedDay}</Text>
+          <FlatList
+            data={lectures}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={renderLectureItem}
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setScheduleVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Total Hours Taught</Text>
-          <Text style={styles.performanceValue}>120</Text>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={editProfileVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Edit Profile</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Department"
+            value={newDepartment}
+            onChangeText={setNewDepartment}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Phonenumber"
+            value={newPhone}
+            onChangeText={setNewPhone}
+            keyboardType="phone-pad"
+          />
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={updateTeacherProfile}
+          >
+            <Text style={styles.saveButtonText}>Save</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setEditProfileVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Skills Development</Text>
-          <Text style={styles.performanceValue}>10</Text>
-        </View>
-      </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
+  container: { flex: 1, padding: 20, backgroundColor: "#f8f9fa" },
+  profileSection: { alignItems: "center", marginBottom: 20 },
+  initialsContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    backgroundColor: "#007bff",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 10,
   },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  profileSubtitle: {
-    marginLeft: 5,
-    color: 'gray',
-  },
-  infoSection: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-  },
-  infoLabel: {
-    fontSize: 20,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  infoBox: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    // borderRadius: 5,
-    // backgroundColor: '#f1f1f1',
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  upgradeButton: {
-    backgroundColor: '#007bff',
+  initialsText: { fontSize: 36, color: "white", fontWeight: "bold" },
+  profileName: { fontSize: 20, fontWeight: "bold" },
+  row: { flexDirection: "row", alignItems: "center", marginTop: 5 },
+  profileSubtitle: { marginLeft: 5, color: "gray" },
+  viewAllButton: {
+    backgroundColor: "#007bff",
     borderRadius: 5,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginBottom: 20,
+    padding: 10,
+    marginVertical: 10,
+    alignItems: "center",
   },
-  upgradeButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  viewAllButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  editProfileButton: {
+    backgroundColor: "#28a745",
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 10,
+    alignItems: "center",
   },
-  performanceSection: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-  },
-  performanceTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  editProfileButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  modalContainer: { flex: 1, padding: 20, backgroundColor: "#f8f9fa" },
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 20 },
+  input: {
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
     marginBottom: 10,
   },
-  performanceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+  saveButton: {
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 10,
+    alignItems: "center",
   },
-  performanceLabel: {
-    fontSize: 14,
-    color: 'gray',
+  saveButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  closeButton: {
+    backgroundColor: "#dc3545",
+    borderRadius: 5,
+    padding: 10,
+    alignItems: "center",
+    marginVertical: 10,
   },
-  performanceValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#007bff',
+  closeButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  daySelector: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
   },
+  dayButton: { padding: 10, borderRadius: 5, backgroundColor: "#f1f1f1" },
+  dayButtonSelected: { backgroundColor: "#007bff" },
+  dayButtonText: { fontSize: 14, color: "#333" },
+  dayButtonTextSelected: { color: "white" },
 });
 
 export default TeacherProfile;

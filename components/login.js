@@ -1,5 +1,3 @@
-//Loginscreen
-
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -10,10 +8,10 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
-import {auth, db} from '../config'; // Make sure this is imported correctly
+import {auth, db} from '../config'; 
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -44,7 +42,7 @@ const LoginScreen = ({ navigation }) => {
       if (userData.role === 'student') {
         navigation.navigate('Home', { email: user.email, ...userData });
       } else if (userData.role === 'teacher') {
-        const teacherDocRef = doc(db, 'teachers', user.uid);
+        const teacherDocRef = doc(db, 'teachersinfo', user.uid);
         const teacherDocSnap = await getDoc(teacherDocRef);
         if (!teacherDocSnap.exists()) {
           throw new Error('Teacher details not found.');

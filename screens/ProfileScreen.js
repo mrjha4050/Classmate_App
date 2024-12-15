@@ -1,4 +1,3 @@
-// src/screens/ProfileScreen.js
 import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
@@ -8,29 +7,31 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
-import { getAuth, updateEmail, updatePassword } from "firebase/auth";
+import { getAuth, updateEmail } from "firebase/auth";
 import { db } from "../config";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const ProfileScreen = () => {
   const auth = getAuth();
-  const [name, setName] = useState("");
+  const [name, setName] = useState("");  
   const [phoneNumber, setPhoneNumber] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setLoading(true);
       try {
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setName(data.name || "");
+          setName(data.name || "");  
           setPhoneNumber(data.phoneNumber || "");
           setNewEmail(data.email || "");
           setRole(data.role);
@@ -46,13 +47,12 @@ const ProfileScreen = () => {
               });
             }
           } else if (data.role === "teacher") {
-            const teacherDocRef = doc(db, "teachers", auth.currentUser.uid);
+            const teacherDocRef = doc(db, "teachersinfo", auth.currentUser.uid);
             const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
               const teacherData = teacherDocSnap.data();
               setAdditionalInfo({
                 department: teacherData.department || "",
-                // subjects: teacherData.subjects || '',array
                 subjects: Array.isArray(teacherData.subjects)
                   ? teacherData.subjects
                   : [],
@@ -66,15 +66,20 @@ const ProfileScreen = () => {
         Alert.alert("Error", "Error fetching user data");
         console.error("Error fetching user data:", error);
       }
+      setLoading(false);
     };
 
     fetchUserData();
   }, []);
 
   const handleUpdate = async () => {
+    if (!name || !phoneNumber || !newEmail) {
+      Alert.alert("Error", "Please fill in all required fields!");
+      return;
+    }
+    setLoading(true);
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
-
       const updateData = {};
       if (name) updateData.name = name;
       if (phoneNumber) updateData.phoneNumber = phoneNumber;
@@ -82,113 +87,88 @@ const ProfileScreen = () => {
         await updateEmail(auth.currentUser, newEmail);
         updateData.email = newEmail;
       }
-
       await updateDoc(userDocRef, updateData);
-
-      if (role === "student") {
-        const studentDocRef = doc(db, "students", auth.currentUser.uid);
-        await updateDoc(studentDocRef, {
-          course: additionalInfo.course,
-          year: additionalInfo.year,
-        });
-      } else if (role === "teacher") {
-        const teacherDocRef = doc(db, "teachers", auth.currentUser.uid);
-        await updateDoc(teacherDocRef, {
-          department: additionalInfo.department,
-          subjects: additionalInfo.subjects,
-        });
-      }
-
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to update profile");
       console.error("Error updating profile:", error);
     }
+    setLoading(false);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "";
+    const initials = name
+      .split(" ")
+      .map((word) => word[0])
+      .join("");
+    return initials.toUpperCase();
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* <Text style={styles.title}>Edit Profile</Text> */}
-      <View style={styles.formContainer}>
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          value={name}
-          onChangeText={setName}
-        />
-        <Text style={styles.label}>Phone Number</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your phone number"
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-          keyboardType="phone-pad"
-        />
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your new email"
-          value={newEmail}
-          onChangeText={setNewEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
-        {role === "student" ? (
-          <View>
-            <Text style={styles.label}>Course</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your course"
-              value={additionalInfo.course || ""}
-              onChangeText={(text) =>
-                setAdditionalInfo({ ...additionalInfo, course: text })
-              }
-            />
-            <Text style={styles.label}>Year</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your year"
-              value={additionalInfo.year || ""}
-              onChangeText={(text) =>
-                setAdditionalInfo({ ...additionalInfo, year: text })
-              }
-            />
+      <ScrollView>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.initials}>{getInitials(name)}</Text>
           </View>
-        ) : (
-          <View>
-            <Text style={styles.label}>Department</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your department"
-              value={additionalInfo.department || ""}
-              onChangeText={(text) =>
-                setAdditionalInfo({ ...additionalInfo, department: text })
-              }
-            />
-            <Text style={styles.label}>Subjects</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your subjects (comma separated)"
-              value={
-                additionalInfo.subjects
-                  ? additionalInfo.subjects.join(", ")
-                  : ""
-              }
-              onChangeText={(text) =>
-                setAdditionalInfo({
-                  ...additionalInfo,
-                  subjects: text.split(",").map((subject) => subject.trim()),
-                })
-              }
-            />
-          </View>
-        )}
-        <TouchableOpacity style={styles.button} onPress={handleUpdate}>
-          <Text style={styles.buttonText}>Update Profile</Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+
+        <View style={styles.formContainer}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            value={name}
+            onChangeText={setName}
+          />
+          <Text style={styles.label}>Phone Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your phone number"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+          />
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your new email"
+            value={newEmail}
+            onChangeText={setNewEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
+          {role === "student" && (
+            <>
+              <Text style={styles.label}>Course</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your course"
+                value={additionalInfo.course || ""}
+                onChangeText={(text) =>
+                  setAdditionalInfo({ ...additionalInfo, course: text })
+                }
+              />
+              <Text style={styles.label}>Year</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your year"
+                value={additionalInfo.year || ""}
+                onChangeText={(text) =>
+                  setAdditionalInfo({ ...additionalInfo, year: text })
+                }
+              />
+            </>
+          )}
+          <TouchableOpacity style={styles.button} onPress={handleUpdate}>
+            <Text style={styles.buttonText}>
+              {loading ? "Updating..." : "Update Profile"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -196,49 +176,53 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#f5f5f5",
   },
+  avatarContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#3b4cca",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  initials: {
+    color: "white",
+    fontSize: 36,
+    fontWeight: "bold",
+  },
   formContainer: {
-    width: "80%",
     padding: 20,
     backgroundColor: "#fff",
+    margin: 20,
     borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "bold",
-    marginBottom: 20,
+    elevation: 2,
   },
   label: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   input: {
-    height: 40,
     borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,
-    marginBottom: 20,
-    paddingHorizontal: 10,
+    marginBottom: 15,
+    padding: 10,
+    fontSize: 16,
   },
   button: {
     backgroundColor: "#007BFF",
-    paddingVertical: 10,
+    padding: 15,
     borderRadius: 5,
     alignItems: "center",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
     fontWeight: "bold",
   },
 });

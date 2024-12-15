@@ -10,7 +10,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";  
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { Picker } from "@react-native-picker/picker";
 import MultiSelect from "react-native-multiple-select";
@@ -57,7 +57,7 @@ const SignupScreen = ({ navigation }) => {
           });
 
         } else if (role === "teacher") {
-          const teacherDocRef = doc(db, "teachers", user.uid);
+          const teacherDocRef = doc(db, "teachersinfo", user.uid);
           await setDoc(teacherDocRef, {
             userId: user.uid,
             department: additionalInfo.department,
@@ -70,7 +70,6 @@ const SignupScreen = ({ navigation }) => {
         navigation.navigate("Login1");
       } catch (error) {
         console.error("Error signing up:", error);
-        Alert.alert("Error", "Failed to sign up. Please try again.");
         setIsLoading(false);
       }
     } else {

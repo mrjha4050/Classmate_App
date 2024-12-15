@@ -1,37 +1,35 @@
 // screens/SignInScreen.js
-
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar } from 'react-native-paper';
 
 const SignInScreen = ({ navigation }) => {
   const handleStudentLogin = () => {
-    navigation.navigate('Login1');
+    navigation.navigate('LoginScreen');
+    console.log('Navigate to login 1');
   };
 
-  const handleParentLogin = () => {
-    navigation.navigate('Login1');
+  const handleTeacherLogin = () => {
+    navigation.navigate('LoginScreen');
+    console.log('Navigate to login 1');
+
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Appbar.Header style={styles.appbar}>
-        <Appbar.Content title="Sign In" style={styles.signin1} />
-      </Appbar.Header>
       <View style={styles.contentContainer}>
         <Text style={styles.selectText}>Who are you?</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={handleStudentLogin}>
             <Image
-              source={require('../assets/student.png')} // Ensure this path is correct
+              source={require('../assets/student.png')}  
               style={styles.buttonImage}
             />
             <Text style={styles.buttonText}>Student</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handleParentLogin}>
+          <TouchableOpacity style={styles.button} onPress={handleTeacherLogin}>
             <Image
-              source={require('../assets/Teacher.png')} // Ensure this path is correct
+              source={require('../assets/Teacher.png')}  
               style={styles.buttonImage}
             />
             <Text style={styles.buttonText}>Teacher</Text>
@@ -55,9 +53,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   appbar: {
-    backgroundColor: '#3498DB', // Replace with desired color
-    height: 60, // Adjust height as needed
-    elevation: 4, // Add elevation for shadow
+    backgroundColor: '#0B353B',  
+    height: 60,  
+    elevation: 4, 
   },
   signin1: {
     flex: 1,

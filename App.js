@@ -1,7 +1,7 @@
 import React from "react";
-import 'react-native-gesture-handler';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import "react-native-gesture-handler";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
 import SignInScreen from "./components/start";
 import LoginScreen from "./components/login";
 import HomeScreen from "./components/StudentHome";
@@ -23,8 +23,7 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <AuthProvider>
-          <NavigationContainer>
-
+      <NavigationContainer>
         <Stack.Navigator initialRouteName="SignIn">
           <Stack.Screen
             name="SignIn"
@@ -32,7 +31,7 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Login1"
+            name="LoginScreen"
             component={LoginScreen}
             options={{ headerShown: false }}
           />
@@ -50,7 +49,6 @@ export default function App() {
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
 
-
           <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
 
           <Stack.Screen name="ViewTimeTable" component={ViewTimetableScreen} />
@@ -59,6 +57,7 @@ export default function App() {
             name="CreateNoticeScreen"
             component={CreateNoticeScreen}
           />
+          
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
           <Stack.Screen
             name="TeacherHomeScreen"

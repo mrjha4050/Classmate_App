@@ -112,7 +112,7 @@ const CreateTimetableScreen = () => {
       return;
     }
   
-    const formattedStartTime = startTime.toTimeString().substring(0, 5); // HH:MM format
+    const formattedStartTime = startTime.toTimeString().substring(0, 5); 
     const formattedEndTime = endTime.toTimeString().substring(0, 5);
   
     const newLecture = {
@@ -123,7 +123,7 @@ const CreateTimetableScreen = () => {
     };
   
     setLectures([...lectures, newLecture]);
-    setHasChanges(true); // Mark that changes have been made
+    setHasChanges(true); 
     setStartTime(new Date(endTime));
     setEndTime(new Date(endTime.getTime() + 45 * 60000));
     setSubject("");

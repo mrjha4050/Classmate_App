@@ -6,34 +6,52 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  Modal,
 } from "react-native";
-import { collection, getDocs, addDoc, doc } from "firebase/firestore";
 import { db } from "../config";
+import { collection, getDocs, getDoc, doc, addDoc } from "firebase/firestore";
 
 const AttendanceScreen = () => {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [selectedYear, setSelectedYear] = useState("Third Year"); // Default year
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility
 
+  const years = ["First Year", "Second Year", "Third Year"]; // Available years
+
+  // Fetch students based on selected year
   const fetchStudents = async () => {
     try {
       const studentInfoSnapshot = await getDocs(collection(db, "studentinfo"));
-      const studentInfoData = studentInfoSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        rollNo: doc.data().rollNumber,
-        userId: doc.data().userId,
-      }));
-  
+      const studentInfoData = studentInfoSnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          rollNo: doc.data().rollNumber,
+          userId: doc.data().userId,
+          year: doc.data().year,
+        }))
+        .filter((student) => student.year === selectedYear); // Filter by selected year
+
       const studentsWithNames = await Promise.all(
         studentInfoData.map(async (student) => {
-          const userRef = doc(db, "users", student.userId);
-          const userDoc = await getDoc(userRef);
+          const userDoc = await getDoc(doc(db, "users", student.userId));
           const userName = userDoc.exists() ? userDoc.data().name : "Unknown";
           return { ...student, name: userName };
         })
       );
+
+      setStudents(studentsWithNames);
     } catch (error) {
+      console.error("Error fetching students:", error.message);
       Alert.alert("Error", `Failed to fetch students: ${error.message}`);
     }
+  };
+
+  // Handle selecting a year
+  const selectYear = (year) => {
+    setSelectedYear(year);
+    setModalVisible(false);
+    fetchStudents(); // Refetch students after selecting a year
   };
 
   useEffect(() => {
@@ -100,16 +118,47 @@ const AttendanceScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>ATTENDANCE</Text>
-        <Text style={styles.classInfo}>
-          Class <Text style={styles.highlightedText}>TYBSCIT</Text> 10/8/2024
-        </Text>
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
+          <Text style={styles.classInfo}>
+            Class <Text style={styles.highlightedText}>{selectedYear}</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Select Year</Text>
+            {years.map((year) => (
+              <TouchableOpacity
+                key={year}
+                style={styles.modalItem}
+                onPress={() => selectYear(year)}
+              >
+                <Text style={styles.modalItemText}>{year}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <FlatList
         data={students}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
       />
+
       <TouchableOpacity style={styles.saveButton} onPress={saveAttendance}>
         <Text style={styles.saveButtonText}>Save Attendance</Text>
       </TouchableOpacity>
@@ -125,22 +174,15 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#3b4cca",
     padding: 15,
-  },
-  title: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
+    alignItems: "center",
   },
   classInfo: {
     color: "white",
     fontSize: 16,
-    textAlign: "center",
+    fontWeight: "bold",
   },
   highlightedText: {
     color: "red",
-    fontWeight: "bold",
   },
   row: {
     flexDirection: "row",
@@ -190,6 +232,45 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "white",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  modalItem: {
+    paddingVertical: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: "black",
+  },
+  closeButton: {
+    backgroundColor: "#3b4cca",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 20,
+    width: "50%",
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: "white",
     fontWeight: "bold",
   },
 });

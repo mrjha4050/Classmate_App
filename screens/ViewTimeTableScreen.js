@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, 
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-import moment from 'moment';
 
 const ViewTimetableScreen = () => {
   const [timetable, setTimetable] = useState({});
@@ -50,7 +49,7 @@ const ViewTimetableScreen = () => {
     const courses = ["Bsc.IT", "BMS", "BCA", "B.Com"];
     const years = ["First Year", "Second Year", "Third Year"];
     let allLectures = [];
-    const excludedTeachers = ["Anshika", "Jaymala"];
+    const excludedTeachers = ["Jaymala"];
   
     try {
       for (let course of courses) {
@@ -63,7 +62,7 @@ const ViewTimetableScreen = () => {
             const data = docSnap.data();
             const filteredLectures = data.lectures.filter(lecture => !excludedTeachers.includes(lecture.teacher));
             allLectures.push(...filteredLectures);
-          }
+          } 
         }
       }
     } catch (error) {

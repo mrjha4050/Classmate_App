@@ -67,7 +67,7 @@ const CreateNoticeScreen = ({ navigation }) => {
           readBy: [],
         });
         Alert.alert("Success", "Notice created successfully!");
-        sendNotificationsToAllUsers();  // Call to send notifications after notice creation
+        sendNotificationsToAllUsers(); 
         navigation.goBack();
       } catch (error) {
         console.error("Error creating notice:", error);
@@ -99,7 +99,7 @@ const CreateNoticeScreen = ({ navigation }) => {
           placeholder="Teacher's Name"
           value={teacher}
           onChangeText={setTeacher}
-          editable={false} // Make the input read-only since it's auto-filled
+          editable={false}  
         />
         <Text style={styles.label}>Tag</Text>
         <View style={styles.tagContainer}>

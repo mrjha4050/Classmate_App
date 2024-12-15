@@ -82,13 +82,21 @@ const HomeScreen = ({ route }) => {
     await fetchNotices();
     setRefreshing(false);
   };
+ 
 
   return (
     <SafeAreaView style={styles.safeArea}>
     <View style={styles.headerContainer}>
       <MaterialIcons name="school" size={28} color="black" />
       <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
-      <MaterialIcons name="notifications" size={28} color="orange" style={styles.bellIcon} />
+      <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={() => navigation.navigate("ProfileScreen")}
+        >
+          <Text style={styles.avatarText}>
+                  <MaterialIcons name="person" size={29} color="black" style={styles.bellIcon} />
+          </Text>
+        </TouchableOpacity>
     </View>
     <Text style={styles.subHeader}>
       {user ? `Class - ${user.course} || Roll No - ${user.rollNumber}` : "Fetching details..."}
@@ -142,25 +150,6 @@ const HomeScreen = ({ route }) => {
               <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("ProfileScreen");
-              }}
-            >
-              <Text style={styles.quickLinkText}>Profile</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("AttendanceScreen");
-              }}
-            >
-              <Text style={styles.quickLinkText}>Attendance</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
