@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect  } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -12,6 +12,7 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/aut
 import { doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
 import {auth, db} from '../config'; 
+import {registerForPushNotifications} from '../controllers/registerForPushNotifications';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -73,6 +74,13 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'Failed to send password reset email. Please try again.');
     }
   };
+  
+  useEffect(() => {
+    console.log("Registering for push notifications...");
+    registerForPushNotifications()
+      .then(() => console.log("Push notification registration completed"))
+      .catch((error) => console.error("Error during push notification registration:", error));
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

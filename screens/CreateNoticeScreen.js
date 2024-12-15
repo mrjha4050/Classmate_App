@@ -46,13 +46,31 @@ const CreateNoticeScreen = ({ navigation }) => {
   }, []);
 
   const sendNotificationsToAllUsers = async () => {
-    const tokensCollectionRef = collection(db, "tokens");
-    const snapshot = await getDocs(tokensCollectionRef);
-    snapshot.forEach((doc) => {
-      const token = doc.data().token;
-      console.log("Sending notification to token:", token);
-    });
+    try {
+      const usersCollectionRef = collection(db, "users");
+      const querySnapshot = await getDocs(usersCollectionRef);
+  
+      const tokens = querySnapshot.docs
+        .map((doc) => doc.data().expoPushToken)
+        .filter((token) => token);  
+  
+      console.log("Sending notifications to tokens:", tokens);
+  
+      for (const token of tokens) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "New Notice",
+            body: `A new notice titled "${title}" has been published.`,
+          },
+          trigger: null,  
+        });
+      }
+    } catch (error) {
+      console.error("Error sending notifications:", error);
+      Alert.alert("Error", "Failed to send notifications.");
+    }
   };
+
 
   const handleCreateNotice = async () => {
     if (title && content && teacher && tag) {
@@ -66,8 +84,12 @@ const CreateNoticeScreen = ({ navigation }) => {
           tag,
           readBy: [],
         });
+  
         Alert.alert("Success", "Notice created successfully!");
+        
+        // Send notifications
         sendNotificationsToAllUsers(); 
+  
         navigation.goBack();
       } catch (error) {
         console.error("Error creating notice:", error);
@@ -78,9 +100,9 @@ const CreateNoticeScreen = ({ navigation }) => {
     }
   };
 
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* <Text style={styles.title}>Create Notice</Text> */}
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}

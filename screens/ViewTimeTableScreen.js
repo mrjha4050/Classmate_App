@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, 
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-
+import moment from 'moment';
 const ViewTimetableScreen = () => {
   const [timetable, setTimetable] = useState({});
   const [days, setDays] = useState([]);

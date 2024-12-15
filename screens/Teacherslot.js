@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity } from 'react-native';
 import { db } from '../config'; // Ensure this points to your Firebase config
 import { collection, doc, getDoc } from 'firebase/firestore';
-import moment from 'moment';
 import { createStackNavigator } from "@react-navigation/stack";
-
+import moment from 'moment';
 
 const Teacherslot = () => {
   const [teachers, setTeachers] = useState([]);
