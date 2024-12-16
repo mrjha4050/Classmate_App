@@ -1,14 +1,22 @@
 {
   "cli": {
-    "version": ">= 12.4.1",
-    "appVersionSource": "remote"
+    "version": ">= 12.4.1"
   },
   "build": {
-    "preview": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview2": {
       "android": {
@@ -17,16 +25,9 @@
       "channel": "preview2"
     },
     "preview3": {
-      "developmentClient": true,
-      "channel": "preview3"
+      "developmentClient": true
     },
-    "preview4": {
-      "distribution": "internal",
-      "channel": "preview4"
-    },
-    "production": {
-      "channel": "production"
-    }
+    "production": {}
   },
   "submit": {
     "production": {}

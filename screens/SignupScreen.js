@@ -15,7 +15,7 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { Picker } from "@react-native-picker/picker";
 import MultiSelect from "react-native-multiple-select";
 import { subjects } from "../components/subjects";
-import {auth, db} from '../config';
+import {db} from '../config';
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");

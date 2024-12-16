@@ -11,7 +11,7 @@ import {
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import * as Haptics from "expo-haptics";
-import {auth, db} from '../config'; 
+import {db, auth} from '../config'; 
 import {registerForPushNotifications} from '../controllers/registerForPushNotifications';
 
 const LoginScreen = ({ navigation }) => {
@@ -24,20 +24,18 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
-    
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
       if (!userDocSnap.exists()) {
         throw new Error('User data not found.');
-      }
+      } 
 
       const userData = userDocSnap.data();
-      console.log("User data:", userData); // Logging user data
+      console.log("User data:", userData);  
       Alert.alert('Success', 'Login Successful!');
 
       if (userData.role === 'student') {

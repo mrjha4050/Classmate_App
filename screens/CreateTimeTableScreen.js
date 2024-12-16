@@ -2,14 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   Button,
   StyleSheet,
   Alert,
   FlatList,
   TouchableOpacity,
   Modal,
-  ScrollView,  
   ActivityIndicator,
 } from "react-native";
 import { db } from "../config";
@@ -40,7 +38,6 @@ const CreateTimetableScreen = () => {
   const [showDayModal, setShowDayModal] = useState(false);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
-  const [showCourseModal, setShowCourseModal] = useState(false);
   const [showYearModal, setShowYearModal] = useState(false);
   const [teachers, setTeachers] = useState([]);
   const [course, setCourse] = useState("");
@@ -132,30 +129,33 @@ const CreateTimetableScreen = () => {
     setIsBreak(false);
   };
 
-
   const fetchTimetableForDay = async (selectedDay) => {
+    if (!year || !selectedDay) {
+      Alert.alert("Error", "Please select a year and day before fetching the timetable.");
+      return;
+    }
     setLoading(true);
     try {
-      const path = `timetable/${course}/${year}/${selectedDay}`;
+      const path = `timetable/Bsc.IT/${year}/${selectedDay}`;
       const docRef = doc(db, path);
       const docSnap = await getDoc(docRef);
-
+  
       if (docSnap.exists()) {
         const data = docSnap.data();
         const loadedLectures = data.lectures || [];
         loadedLectures.sort((a, b) => {
-          const startA = new Date(`1970-01-01T${a.timeSlot.split('-')[0]}:00Z`);
-          const startB = new Date(`1970-01-01T${b.timeSlot.split('-')[0]}:00Z`);
+          const startA = new Date(`1970-01-01T${a.timeSlot.split("-")[0]}:00Z`);
+          const startB = new Date(`1970-01-01T${b.timeSlot.split("-")[0]}:00Z`);
           return startA - startB;
         });
         setLectures(loadedLectures);
       } else {
         setLectures([]);
-        Alert.alert('Info', 'No lectures found for this day.');
+        Alert.alert("Info", "No lectures found for this day.");
       }
     } catch (error) {
       console.error("Error fetching timetable: ", error);
-      Alert.alert('Error', `Failed to fetch data: ${error.message}`);
+      Alert.alert("Error", `Failed to fetch data: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -169,7 +169,7 @@ const CreateTimetableScreen = () => {
     const startTimeDate = new Date(startTime.setSeconds(0, 0));
     const endTimeDate = new Date(endTime.setSeconds(0, 0));
 
-    const formattedStartTime = startTime.toTimeString().substring(0, 5); // HH:MM format
+    const formattedStartTime = startTime.toTimeString().substring(0, 5);  
     const formattedEndTime = endTime.toTimeString().substring(0, 5);
 
     const newLecture = {
@@ -200,32 +200,29 @@ const CreateTimetableScreen = () => {
 
 
   const handleSaveTimetable = async () => {
-    if (day && lectures.length > 0 && course && year) {
-      try {
-        const path = `timetable/${course}/${year}/${day}`;
-        const dayDocRef = doc(db, path);
-
-        const lectureData = { lectures };
-
-        await setDoc(dayDocRef, lectureData, { merge: true });
-        Alert.alert("Success", "Timetable saved successfully!");
-        setHasChanges(false); // Reset the changes tracker
-
-        setDay("");
-        setLectures([]);
-        setCourse("");
-        setYear("");
-      } catch (error) {
-        console.error("Error writing document: ", error);
-        Alert.alert("Error", `Failed to save timetable: ${error.message}`);
-      }
-    } else {
+    if (!day || !lectures.length || !year) {
       Alert.alert(
         "Error",
-        "Please select a course, year, day, and add at least one lecture."
+        "Please select a year, day, and add at least one lecture."
       );
+      return;
+    }
+    try {
+      const path = `timetable/Bsc.IT/${year}/${day}`;
+      const dayDocRef = doc(db, path);
+      await setDoc(dayDocRef, { lectures }, { merge: true });
+      Alert.alert("Success", "Timetable saved successfully!");
+      setHasChanges(false);
+  
+      setDay("");
+      setLectures([]);
+      setYear("");
+    } catch (error) {
+      console.error("Error writing document: ", error);
+      Alert.alert("Error", `Failed to save timetable: ${error.message}`);
     }
   };
+
   const handleNavigateAway = () => {
     if (hasChanges) {
       Alert.alert(
@@ -294,59 +291,28 @@ const CreateTimetableScreen = () => {
   };
   return (
     <View style={styles.mainContainer}>
-      <ScrollView style={styles.scrollContainer}>
-        
-        <Text style={styles.label}>Course:</Text>
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowCourseModal(true)}
-        >
-          <Text>{course || "Select a course"}</Text>
-        </TouchableOpacity>
-
-        <Modal
-          transparent={true}
-          visible={showCourseModal}
-          animationType="slide"
-          onRequestClose={() => setShowCourseModal(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {["Bsc.IT", "BMS", "BCA", "BFM"].map((courseName, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.dayOption}
-                  onPress={() => selectCourse(courseName)}
-                >
-                  <Text style={styles.dayText}>{courseName}</Text>
-                </TouchableOpacity>
-              ))}
-              <Button
-                title="Cancel"
-                onPress={() => setShowCourseModal(false)}
-              />
-            </View>
-          </View>
-        </Modal>
-
-        <Text style={styles.label}>Year:</Text>
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowYearModal(true)}
-        >
-          <Text>{year || "Select a year"}</Text>
-        </TouchableOpacity>
-
-        <Modal
-          transparent={true}
-          visible={showYearModal}
-          animationType="slide"
-          onRequestClose={() => setShowYearModal(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {["First Year", "Second Year", "Third Year"].map(
-                (yearOption, index) => (
+    <FlatList
+      data={lectures}
+      keyExtractor={(item, index) => index.toString()}
+      ListHeaderComponent={
+        <>
+          <Text style={styles.label}>Year:</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowYearModal(true)}
+          >
+            <Text>{year || "Select a year"}</Text>
+          </TouchableOpacity>
+  
+          <Modal
+            transparent={true}
+            visible={showYearModal}
+            animationType="slide"
+            onRequestClose={() => setShowYearModal(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {["First Year", "Second Year", "Third Year"].map((yearOption, index) => (
                   <TouchableOpacity
                     key={index}
                     style={styles.dayOption}
@@ -354,191 +320,173 @@ const CreateTimetableScreen = () => {
                   >
                     <Text style={styles.dayText}>{yearOption}</Text>
                   </TouchableOpacity>
-                )
-              )}
-              <Button title="Cancel" onPress={() => setShowYearModal(false)} />
+                ))}
+                <Button title="Cancel" onPress={() => setShowYearModal(false)} />
+              </View>
             </View>
-          </View>
-        </Modal>
-
-        <Text style={styles.label}>Day:</Text>
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowDayModal(true)}
-        >
-          <Text>{day || "Select a day"}</Text>
-        </TouchableOpacity>
-
-        <Modal
-          transparent={true}
-          visible={showDayModal}
-          animationType="slide"
-          onRequestClose={() => setShowDayModal(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {daysOfWeek.map((day, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.dayOption}
-                  onPress={() => selectDay(day)}
-                >
-                  <Text style={styles.dayText}>{day}</Text>
-                </TouchableOpacity>
-              ))}
-              <Button title="Cancel" onPress={() => setShowDayModal(false)} />
-            </View>
-          </View>
-        </Modal>
-
-        <Text style={styles.label}>Lecture Start Time:</Text>
-        <Button
-          title={`Set Start Time: ${startTime.toTimeString().substring(0, 5)}`}
-          onPress={() => setShowStartTimePicker(true)}
-        />
-        {showStartTimePicker && (
-          <DateTimePicker
-            value={startTime}
-            mode="time"
-            display="default"
-            onChange={onChangeStartTime}
-          />
-        )}
-
-        <Text style={styles.label}>Lecture End Time:</Text>
-        <Button
-          title={`Set End Time: ${endTime.toTimeString().substring(0, 5)}`}
-          onPress={() => setShowEndTimePicker(true)}
-        />
-        {showEndTimePicker && (
-          <DateTimePicker
-            value={endTime}
-            mode="time"
-            display="default"
-            onChange={onChangeEndTime}
-          />
-        )}
-
-        <View style={styles.breakContainer}>
-          <Text style={styles.label}>Is this a break?</Text>
+          </Modal>
+  
+          <Text style={styles.label}>Day:</Text>
           <TouchableOpacity
-            style={[styles.breakButton, isBreak && styles.breakButtonActive]}
-            onPress={() => setIsBreak(!isBreak)}
+            style={styles.input}
+            onPress={() => setShowDayModal(true)}
           >
-            <Text style={styles.breakButtonText}>{isBreak ? "Yes" : "No"}</Text>
+            <Text>{day || "Select a day"}</Text>
+          </TouchableOpacity>
+  
+          <Modal
+            transparent={true}
+            visible={showDayModal}
+            animationType="slide"
+            onRequestClose={() => setShowDayModal(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {daysOfWeek.map((day, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.dayOption}
+                    onPress={() => selectDay(day)}
+                  >
+                    <Text style={styles.dayText}>{day}</Text>
+                  </TouchableOpacity>
+                ))}
+                <Button title="Cancel" onPress={() => setShowDayModal(false)} />
+              </View>
+            </View>
+          </Modal>
+  
+          <Text style={styles.label}>Lecture Start Time:</Text>
+          <Button
+            title={`Set Start Time: ${startTime.toTimeString().substring(0, 5)}`}
+            onPress={() => setShowStartTimePicker(true)}
+          />
+          {showStartTimePicker && (
+            <DateTimePicker
+              value={startTime}
+              mode="time"
+              display="default"
+              onChange={onChangeStartTime}
+            />
+          )}
+  
+          <Text style={styles.label}>Lecture End Time:</Text>
+          <Button
+            title={`Set End Time: ${endTime.toTimeString().substring(0, 5)}`}
+            onPress={() => setShowEndTimePicker(true)}
+          />
+          {showEndTimePicker && (
+            <DateTimePicker
+              value={endTime}
+              mode="time"
+              display="default"
+              onChange={onChangeEndTime}
+            />
+          )}
+  
+          {!isBreak && (
+            <>
+              <Text style={styles.label}>Subject:</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowSubjectModal(true)}
+              >
+                <Text>{subject || "Select a subject"}</Text>
+              </TouchableOpacity>
+              <Modal
+                transparent={true}
+                visible={showSubjectModal}
+                animationType="slide"
+                onRequestClose={() => setShowSubjectModal(false)}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalContent}>
+                    <FlatList
+                      data={subjects}
+                      keyExtractor={(item, index) => index.toString()}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={styles.dayOption}
+                          onPress={() => selectSubject(item.name)}
+                        >
+                          <Text style={styles.dayText}>{item.name}</Text>
+                        </TouchableOpacity>
+                      )}
+                    />
+                    <Button
+                      title="Cancel"
+                      onPress={() => setShowSubjectModal(false)}
+                    />
+                  </View>
+                </View>
+              </Modal>
+            </>
+          )}
+  
+          {/* Teacher Selection */}
+          <Text style={styles.label}>Teacher:</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowTeacherModal(true)}
+          >
+            <Text>{teacher || "Select a teacher"}</Text>
+          </TouchableOpacity>
+  
+          <Modal
+            transparent={true}
+            visible={showTeacherModal}
+            animationType="slide"
+            onRequestClose={() => setShowTeacherModal(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <FlatList
+                  data={teachers}
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.dayOption}
+                      onPress={() => selectTeacher(item)}
+                    >
+                      <Text style={styles.dayText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+                <Button
+                  title="Cancel"
+                  onPress={() => setShowTeacherModal(false)}
+                />
+              </View>
+            </View>
+          </Modal>
+  
+          <Button title="Add Lecture" onPress={addLecture} />
+        </>
+      }
+      renderItem={({ item, index }) => (
+        <TouchableOpacity onPress={() => editLecture(index)}>
+          <View style={styles.lectureContainer}>
+            <Text style={styles.lectureText}>
+              {item.timeSlot} - {item.subject}{" "}
+              {item.location ? `(${item.location})` : ""}{" "}
+              {item.teacher ? `- Teacher: ${item.teacher}` : ""}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
+      ListFooterComponent={
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSaveTimetable}
+          >
+            <Text style={styles.saveButtonText}>Save Timetable</Text>
           </TouchableOpacity>
         </View>
-
-        {!isBreak && (
-          <>
-            <Text style={styles.label}>Subject:</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowSubjectModal(true)}
-            >
-              <Text>{subject || "Select a subject"}</Text>
-            </TouchableOpacity>
-
-            <Modal
-              transparent={true}
-              visible={showSubjectModal}
-              animationType="slide"
-              onRequestClose={() => setShowSubjectModal(false)}
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <ScrollView>
-                    {subjects.map((subject, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.dayOption}
-                        onPress={() => selectSubject(subject.name)}
-                      >
-                        <Text style={styles.dayText}>{subject.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                  <Button
-                    title="Cancel"
-                    onPress={() => setShowSubjectModal(false)}
-                  />
-                </View>
-              </View>
-            </Modal>
-
-            <Text style={styles.label}>Location:</Text>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Enter location (e.g., Room B502)"
-            />
-
-            <Text style={styles.label}>Teacher:</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowTeacherModal(true)}
-            >
-              <Text>{teacher || "Select a teacher"}</Text>
-            </TouchableOpacity>
-
-            <Modal
-              transparent={true}
-              visible={showTeacherModal}
-              animationType="slide"
-              onRequestClose={() => setShowTeacherModal(false)}
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <ScrollView>
-                    {teachers.map((teacher, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.dayOption}
-                        onPress={() => selectTeacher(teacher)}
-                      >
-                        <Text style={styles.dayText}>{teacher}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                  <Button
-                    title="Cancel"
-                    onPress={() => setShowTeacherModal(false)}
-                  />
-                </View>
-              </View>
-            </Modal>
-          </>
-        )}
-
-        <Button title="Add Lecture" onPress={addLecture} />
-
-        <FlatList
-          data={lectures}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity onPress={() => editLecture(index)}>
-              <View style={styles.lectureContainer}>
-                <Text style={styles.lectureText}>
-                  {item.timeSlot} - {item.subject}{" "}
-                  {item.location ? `(${item.location})` : ""}{" "}
-                  {item.teacher ? `- Teacher: ${item.teacher}` : ""}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          nestedScrollEnabled={true}
-        />
-      </ScrollView>
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSaveTimetable}
-        >
-          <Text style={styles.saveButtonText}>Save Timetable</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      }
+      nestedScrollEnabled={true}
+    />
+  </View>
   );
 };
 

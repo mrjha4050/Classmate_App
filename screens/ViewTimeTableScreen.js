@@ -3,15 +3,17 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, 
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-import moment from 'moment';
+// import moment from 'moment';
+import { format , addDays } from 'date-fns';
+
+
 const ViewTimetableScreen = () => {
   const [timetable, setTimetable] = useState({});
   const [days, setDays] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(moment().format('dddd'));
+  const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');
   const [selectedYear, setSelectedYear] = useState('Third Year');
-  const [teacherAvailability, setTeacherAvailability] = useState({});
 
   useEffect(() => {
     fetchTimetable();
@@ -20,39 +22,40 @@ const ViewTimetableScreen = () => {
   const fetchTimetable = async () => {
     try {
       const docRef = doc(db, `timetable/${selectedCourse}/${selectedYear}/${selectedDay}`);
-      const docSnapshot = await getDoc(docRef);
-
-      if (docSnapshot.exists()) {
-        console.log('Timetable Data:', docSnapshot.data());
-        setTimetable(docSnapshot.data());
-      } else {
-        console.log('No timetable found for this selection.');
-        setTimetable({});
+      try {
+        const cachedData = await getDocFromCache(docRef);
+        console.log("Timetable (from cache):", cachedData.data());
+        setTimetable(cachedData.data());
+      } catch {
+        const serverData = await getDoc(docRef);
+        console.log("Timetable (from server):", serverData.data());
+        setTimetable(serverData.data());
       }
     } catch (error) {
-      console.error("Error fetching timetable: ", error);
+      console.error("Error fetching timetable:", error);
       Alert.alert("Error", "Failed to fetch timetable data.");
     }
 
-    const today = moment();
+
+    // const today = moment();
+    const today = new Date();
     const nextDays = [];
     for (let i = 0; i < 7; i++) {
+      const currentDay = addDays(today, i);
       nextDays.push({
-        date: today.clone().add(i, 'days').format('YYYY-MM-DD'),
-        day: today.clone().add(i, 'days').format('dddd'),
+        date: format(currentDay, "yyyy-MM-dd"),
+        day: format(currentDay, "EEEE"),
       });
     }
     setDays(nextDays);
   };
 
   const fetchAllLecturesForDay = async (selectedDay) => {
-    const courses = ["Bsc.IT", "BMS", "BCA", "B.Com"];
     const years = ["First Year", "Second Year", "Third Year"];
     let allLectures = [];
     const excludedTeachers = ["Jaymala"];
   
     try {
-      for (let course of courses) {
         for (let year of years) {
           const path = `timetable/${course}/${year}/${selectedDay}`;
           const dayDocRef = doc(db, path);
@@ -64,7 +67,6 @@ const ViewTimetableScreen = () => {
             allLectures.push(...filteredLectures);
           } 
         }
-      }
     } catch (error) {
       console.error("Error fetching all lectures: ", error);
     }
@@ -79,8 +81,8 @@ const ViewTimetableScreen = () => {
         onPress={() => setSelectedDay(item.day)}
         style={[styles.dayBlock, isSelected && styles.selectedDayBlock]}
       >
-        <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>{moment(item.date).format('MMM')}</Text>
-        <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{moment(item.date).format('DD')}</Text>
+        <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>  {format(new Date(item.date), "MMM")}</Text>
+        <Text style={[styles.dayText, isSelected && styles.selectedDayText]}> {format(new Date(item.date), "dd")}</Text>
         <Text style={[styles.daySubText, isSelected && styles.selectedDaySubText]}>{item.day}</Text>
       </TouchableOpacity>
     );
@@ -90,7 +92,7 @@ const ViewTimetableScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
         <Text style={styles.label}>Select Course and Year</Text>
-        <Text style={styles.selectionText}>{selectedCourse} - {selectedYear}</Text>
+        <Text style={styles.selectionText}> {selectedYear}</Text>
       </TouchableOpacity>
 
       <Modal

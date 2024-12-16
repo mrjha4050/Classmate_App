@@ -15,8 +15,8 @@ import * as Notifications from "expo-notifications";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
@@ -73,13 +73,18 @@ const AttendanceScreen = () => {
     }));
   };
 
-  const sendPushNotification = async (expoPushToken, name) => {
+  const sendPushNotification = async (expoPushToken, name, status) => {
     if (!expoPushToken) return;
+    const messageBody =
+      status === "present"
+        ? `You have been marked as present for ${selectedSubject}.`
+        : `You have been marked as absent for ${selectedSubject}.`;
+  
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Attendance Marked",
-          body: `You have been marked as present for ${selectedSubject}.`,
+          title: "Attendance Notification",
+          body: messageBody,
           data: { name },
         },
         trigger: null,
@@ -94,7 +99,7 @@ const AttendanceScreen = () => {
       Alert.alert("Error", "Please select a subject before saving attendance.");
       return;
     }
-
+  
     try {
       const currentDate = new Date().toISOString().split("T")[0];
       const formattedData = students.map((student) => ({
@@ -104,24 +109,34 @@ const AttendanceScreen = () => {
         status: attendance[student.id] || "N/A",
         date: currentDate,
       }));
-
+  
       await addDoc(collection(db, "studentAttendance"), {
         attendance: formattedData,
         timestamp: new Date(),
       });
-
-      // Send notifications to students marked as Present
+  
       formattedData.forEach((student) => {
-        if (student.status === "P") {
-          const selectedStudent = students.find(
-            (s) => s.rollNo === student.rollNo
-          );
-          if (selectedStudent?.expoPushToken) {
-            sendPushNotification(selectedStudent.expoPushToken, student.name);
+        const selectedStudent = students.find(
+          (s) => s.rollNo === student.rollNo
+        );
+  
+        if (selectedStudent?.expoPushToken) {
+          if (student.status === "P") {
+            sendPushNotification(
+              selectedStudent.expoPushToken,
+              student.name,
+              "present"
+            );
+          } else if (student.status === "A") {
+            sendPushNotification(
+              selectedStudent.expoPushToken,
+              student.name,
+              "absent"
+            );
           }
         }
       });
-
+  
       Alert.alert("Success", "Attendance saved and notifications sent!");
     } catch (error) {
       Alert.alert("Error", `Failed to save attendance: ${error.message}`);
@@ -169,7 +184,6 @@ const AttendanceScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Modal for Year Selection */}
       <Modal
         visible={yearModalVisible}
         transparent={true}
@@ -201,7 +215,6 @@ const AttendanceScreen = () => {
         </View>
       </Modal>
 
-      {/* Modal for Subject Selection */}
       <TouchableOpacity
         style={styles.subjectButton}
         onPress={() => setSubjectModalVisible(true)}

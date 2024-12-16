@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity } from 'react-native';
-import { db } from '../config'; // Ensure this points to your Firebase config
-import { collection, doc, getDoc } from 'firebase/firestore';
-import { createStackNavigator } from "@react-navigation/stack";
-import moment from 'moment';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity } from "react-native";
+import { db } from "../config"; // Ensure this points to your Firebase config
+import { collection, doc, getDoc } from "firebase/firestore";
+import { format, addDays, parseISO } from "date-fns";
 
 const Teacherslot = () => {
   const [teachers, setTeachers] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');
-  const [selectedYear, setSelectedYear] = useState('Third Year');
+  const [selectedCourse, setSelectedCourse] = useState("Bsc.IT");
+  const [selectedYear, setSelectedYear] = useState("Third Year");
   const [days, setDays] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(moment().format('dddd'));
+  const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
 
   const excludedTeachers = ["Jaymala", "Anshika"];
 
   useEffect(() => {
     const generateDays = () => {
-      const today = moment();
+      const today = new Date();
       const nextDays = [];
       for (let i = 0; i < 7; i++) {
+        const currentDay = addDays(today, i);
         nextDays.push({
-          date: today.clone().add(i, 'days').format('YYYY-MM-DD'), 
-          day: today.clone().add(i, 'days').format('dddd'),    
+          date: format(currentDay, "yyyy-MM-dd"),
+          day: format(currentDay, "EEEE"),
         });
       }
       return nextDays;
@@ -47,7 +47,7 @@ const Teacherslot = () => {
 
     lectures.forEach((lecture) => {
       const { teacher, timeSlot } = lecture;
-      
+
       if (excludedTeachers.includes(teacher)) {
         return;
       }
@@ -57,22 +57,24 @@ const Teacherslot = () => {
       const endTime = parseInt(end.split(":")[0]);
 
       if (!teacherSlots[teacher]) {
-        teacherSlots[teacher] = Array.from({ length: endHour - startHour }, () => true); 
+        teacherSlots[teacher] = Array.from({ length: endHour - startHour }, () => true);
       }
 
       for (let hour = startTime; hour < endTime; hour++) {
-        teacherSlots[teacher][hour - startHour] = false; 
+        teacherSlots[teacher][hour - startHour] = false;
       }
     });
 
     const freeSlots = {};
     Object.keys(teacherSlots).forEach((teacher) => {
-      freeSlots[teacher] = teacherSlots[teacher].map((isFree, index) => {
-        if (isFree) {
-          return `${index + startHour}:00 - ${index + startHour + 1}:00`;
-        }
-        return null;
-      }).filter(slot => slot !== null);
+      freeSlots[teacher] = teacherSlots[teacher]
+        .map((isFree, index) => {
+          if (isFree) {
+            return `${index + startHour}:00 - ${index + startHour + 1}:00`;
+          }
+          return null;
+        })
+        .filter((slot) => slot !== null);
     });
 
     return freeSlots;
@@ -99,7 +101,6 @@ const Teacherslot = () => {
 
   const renderDayItem = ({ item }) => {
     if (!item || !item.day || !item.date) return null;
-
     const isSelected = item.day === selectedDay;
     return (
       <TouchableOpacity
@@ -110,10 +111,10 @@ const Teacherslot = () => {
         style={[styles.dayBlock, isSelected && styles.selectedDayBlock]}
       >
         <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>
-          {moment(item.date).format('MMM')}
+          {format(parseISO(item.date), "MMM")}
         </Text>
         <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>
-          {moment(item.date).format('DD')}
+          {format(parseISO(item.date), "dd")}
         </Text>
         <Text style={[styles.daySubText, isSelected && styles.selectedDaySubText]}>
           {item.day}
@@ -121,6 +122,7 @@ const Teacherslot = () => {
       </TouchableOpacity>
     );
   };
+
 
   return (
     <View style={styles.container}>
