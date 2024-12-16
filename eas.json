@@ -11,12 +11,14 @@
       },
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "preview2": {
       "android": {
@@ -25,9 +27,12 @@
       "channel": "preview2"
     },
     "preview3": {
-      "developmentClient": true
+      "developmentClient": true,
+      "channel": "preview3"
     },
-    "production": {}
+    "production": {
+      "channel": "production"
+    }
   },
   "submit": {
     "production": {}

@@ -3,41 +3,38 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, 
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-// import moment from 'moment';
 import { format , addDays } from 'date-fns';
 
 
 const ViewTimetableScreen = () => {
-  const [timetable, setTimetable] = useState({});
+  const [timetable, setTimetable] = useState({ lectures: [] }); // Ensure default structure
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState('Bsc.IT');
-  const [selectedYear, setSelectedYear] = useState('Third Year');
+  const [selectedYear, setSelectedYear] = useState("Third Year");
 
   useEffect(() => {
     fetchTimetable();
-  }, [selectedCourse, selectedYear, selectedDay]);
+  }, [selectedYear, selectedDay]);
 
   const fetchTimetable = async () => {
     try {
-      const docRef = doc(db, `timetable/${selectedCourse}/${selectedYear}/${selectedDay}`);
-      try {
-        const cachedData = await getDocFromCache(docRef);
-        console.log("Timetable (from cache):", cachedData.data());
-        setTimetable(cachedData.data());
-      } catch {
-        const serverData = await getDoc(docRef);
-        console.log("Timetable (from server):", serverData.data());
-        setTimetable(serverData.data());
+      const docRef = doc(db, `timetable/Bsc.IT/${selectedYear}/${selectedDay}`);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Timetable (from server):", data);
+        setTimetable(data || { lectures: [] }); // Handle missing data gracefully
+      } else {
+        console.log("No timetable found for the selected day.");
+        setTimetable({ lectures: [] });
       }
     } catch (error) {
       console.error("Error fetching timetable:", error);
       Alert.alert("Error", "Failed to fetch timetable data.");
     }
 
-
-    // const today = moment();
     const today = new Date();
     const nextDays = [];
     for (let i = 0; i < 7; i++) {
@@ -50,30 +47,6 @@ const ViewTimetableScreen = () => {
     setDays(nextDays);
   };
 
-  const fetchAllLecturesForDay = async (selectedDay) => {
-    const years = ["First Year", "Second Year", "Third Year"];
-    let allLectures = [];
-    const excludedTeachers = ["Jaymala"];
-  
-    try {
-        for (let year of years) {
-          const path = `timetable/${course}/${year}/${selectedDay}`;
-          const dayDocRef = doc(db, path);
-          const docSnap = await getDoc(dayDocRef);
-  
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            const filteredLectures = data.lectures.filter(lecture => !excludedTeachers.includes(lecture.teacher));
-            allLectures.push(...filteredLectures);
-          } 
-        }
-    } catch (error) {
-      console.error("Error fetching all lectures: ", error);
-    }
-    return allLectures;
-  };  
-  
-
   const renderDayItem = ({ item }) => {
     const isSelected = item.day === selectedDay;
     return (
@@ -81,9 +54,15 @@ const ViewTimetableScreen = () => {
         onPress={() => setSelectedDay(item.day)}
         style={[styles.dayBlock, isSelected && styles.selectedDayBlock]}
       >
-        <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>  {format(new Date(item.date), "MMM")}</Text>
-        <Text style={[styles.dayText, isSelected && styles.selectedDayText]}> {format(new Date(item.date), "dd")}</Text>
-        <Text style={[styles.daySubText, isSelected && styles.selectedDaySubText]}>{item.day}</Text>
+        <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>
+          {format(new Date(item.date), "MMM")}
+        </Text>
+        <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>
+          {format(new Date(item.date), "dd")}
+        </Text>
+        <Text style={[styles.daySubText, isSelected && styles.selectedDaySubText]}>
+          {item.day}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -91,8 +70,8 @@ const ViewTimetableScreen = () => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
-        <Text style={styles.label}>Select Course and Year</Text>
-        <Text style={styles.selectionText}> {selectedYear}</Text>
+        <Text style={styles.label}>Select Year</Text>
+        <Text style={styles.selectionText}>{selectedYear}</Text>
       </TouchableOpacity>
 
       <Modal
@@ -103,17 +82,6 @@ const ViewTimetableScreen = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalLabel}>Select Course:</Text>
-            <Picker
-              selectedValue={selectedCourse}
-              onValueChange={(itemValue) => setSelectedCourse(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Bsc.IT" value="Bsc.IT" />
-              <Picker.Item label="BMS" value="BMS" />
-              <Picker.Item label="B.Com" value="B.Com" />
-            </Picker>
-
             <Text style={styles.modalLabel}>Select Year:</Text>
             <Picker
               selectedValue={selectedYear}
@@ -124,7 +92,6 @@ const ViewTimetableScreen = () => {
               <Picker.Item label="Second Year" value="Second Year" />
               <Picker.Item label="Third Year" value="Third Year" />
             </Picker>
-
             <Button title="Done" onPress={() => setModalVisible(false)} />
           </View>
         </View>
@@ -142,14 +109,22 @@ const ViewTimetableScreen = () => {
       </View>
 
       <ScrollView style={styles.contentContainer}>
-        {timetable.lectures && timetable.lectures.length > 0 ? (
+        {timetable?.lectures?.length > 0 ? ( // Optional chaining and checking length
           <View style={styles.dayContainer}>
             {timetable.lectures.map((lecture, index) => (
               <View key={index} style={styles.classContainer}>
-                <Text style={styles.subjectText}>Subject - <Text style={styles.subjectName}>{lecture.subject}</Text></Text>
-                <Text style={styles.timeText}>Time - <Text style={styles.timeRange}>{lecture.timeSlot}</Text></Text>
-                <Text style={styles.locationText}>Location - <Text style={styles.locationName}>{lecture.location}</Text></Text>
-                <Text style={styles.teacherText}>Teacher - <Text style={styles.teacherName}>{lecture.teacher}</Text></Text>
+                <Text style={styles.subjectText}>
+                  Subject - <Text style={styles.subjectName}>{lecture.subject}</Text>
+                </Text>
+                <Text style={styles.timeText}>
+                  Time - <Text style={styles.timeRange}>{lecture.timeSlot}</Text>
+                </Text>
+                <Text style={styles.locationText}>
+                  Location - <Text style={styles.locationName}>{lecture.location}</Text>
+                </Text>
+                <Text style={styles.teacherText}>
+                  Teacher - <Text style={styles.teacherName}>{lecture.teacher}</Text>
+                </Text>
               </View>
             ))}
           </View>
