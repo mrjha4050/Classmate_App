@@ -13,8 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.namanjha.myapp"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +23,7 @@
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
-      ],
-      "package": "com.namanjha.myapp"
+      ]
     },
     "web": {
       "favicon": "./assets/Studenticon.png"

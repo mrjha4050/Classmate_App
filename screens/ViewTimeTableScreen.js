@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
   selectionView: {
     padding: 15,
     backgroundColor: '#f0f0f0',
+    
     borderRadius: 10,
     margin: 10,
   },
