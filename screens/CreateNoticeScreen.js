@@ -12,7 +12,6 @@ import {
 import { collection, addDoc ,getDoc, doc} from "firebase/firestore";
 import { db } from "../config";
 import { getAuth } from "firebase/auth"; 
-import * as Haptics from "expo-haptics";
 import * as Notifications from 'expo-notifications';
 import { getDocs } from "firebase/firestore";
 

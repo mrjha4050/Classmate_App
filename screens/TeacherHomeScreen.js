@@ -13,7 +13,6 @@ import { db } from "../config";
 import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Notifications from "expo-notifications";
-import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
 
@@ -302,6 +301,14 @@ const TeacherHomeScreen = ({ route }) => {
 
         <View style={styles.section3}>
           <Text style={styles.sectionTitle}>Updated Info</Text>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              navigation.navigate("AttendanceScreen");
+            }}>
+              <MaterialIcons name="assignment" size={24} color="black">+</MaterialIcons>
+          </TouchableOpacity>
           <View style={styles.card}>
             <Text style={styles.cardText}>Enterprise Java</Text>
             <Text style={styles.cardText}>3 new assignments</Text>
@@ -325,7 +332,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // This will place the bell icon to the far right
+    justifyContent: "space-between",  
     paddingHorizontal: 10,
     paddingVertical: 15,
   },

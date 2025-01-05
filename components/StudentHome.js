@@ -12,7 +12,6 @@ import {
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import * as Haptics from "expo-haptics";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
 

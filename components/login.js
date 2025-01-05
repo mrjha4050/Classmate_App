@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import * as Haptics from "expo-haptics";
 import {db} from '../config'; 
 import {auth} from '../config';
 import {registerForPushNotifications} from '../controllers/registerForPushNotifications';
