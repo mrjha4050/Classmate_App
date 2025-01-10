@@ -12,11 +12,10 @@ import {
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
-
-const HomeScreen = ({ route }) => {
+const HomeScreen = () => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
@@ -62,8 +61,8 @@ const HomeScreen = ({ route }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); 
-      setNotices(noticesList.slice(0, 1));
+      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setNotices(noticesList.slice(0, 3));
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
@@ -81,25 +80,24 @@ const HomeScreen = ({ route }) => {
     await fetchNotices();
     setRefreshing(false);
   };
- 
 
   return (
     <SafeAreaView style={styles.safeArea}>
-    <View style={styles.headerContainer}>
-      <MaterialIcons name="school" size={28} color="black" />
-      <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
-      <TouchableOpacity
+      <View style={styles.headerContainer}>
+        <MaterialIcons name="school" size={28} color="black" />
+        <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
+        <TouchableOpacity
           style={styles.avatarContainer}
           onPress={() => navigation.navigate("ProfileScreen")}
         >
-          <Text style={styles.avatarText}>
-                  <MaterialIcons name="person" size={29} color="black" style={styles.bellIcon} />
-          </Text>
+          <MaterialIcons name="person" size={29} color="black" />
         </TouchableOpacity>
-    </View>
-    <Text style={styles.subHeader}>
-      {user ? `Class - ${user.course} || Roll No - ${user.rollNumber}` : "Fetching details..."}
-    </Text>
+      </View>
+      <Text style={styles.subHeader}>
+        {user
+          ? `Class - ${user.course} || Roll No - ${user.rollNumber}`
+          : "Fetching details..."}
+      </Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
@@ -108,7 +106,7 @@ const HomeScreen = ({ route }) => {
         }
       >
         <View style={styles.section1}>
-          <Text style={styles.sectionTitle1}>lectures</Text>
+          <Text style={styles.sectionTitle1}>Lectures</Text>
           {notices.map((notice) => (
             <TouchableOpacity
               key={notice.id}
@@ -131,35 +129,27 @@ const HomeScreen = ({ route }) => {
           <View style={styles.quickLinks}>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("NoticePage");
-              }}
+              onPress={() => navigation.navigate("NoticePage")}
             >
               <Text style={styles.quickLinkText}>NoticePage</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("ViewTimeTable");
-              }}
+              onPress={() => navigation.navigate("ViewTimeTable")}
             >
               <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
-
           </View>
         </View>
 
         <View style={styles.section3}>
           <Text style={styles.sectionTitle}>Updated Info</Text>
           <View style={styles.card}>
-            <Text style={styles.cardText}>Enterprise Java </Text>
+            <Text style={styles.cardText}>Enterprise Java</Text>
             <Text style={styles.cardText}>3 new assignments</Text>
             <MaterialIcons name="assignment" size={24} color="black" />
           </View>
-          
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -168,17 +158,13 @@ const HomeScreen = ({ route }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1, 
+    flex: 1,
     backgroundColor: "white",
   },
-  container: {
-    paddingHorizontal: 10,
-    backgroundColor: "#fff", 
-  },  
   headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',  
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 10,
     paddingVertical: 15,
   },
@@ -191,18 +177,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginLeft: 10,
-  },
-  iconButton: {
-    backgroundColor: "#000",
-    color: "#fff",
-    padding: 2,
-  },
-  bellIcon: {
-    color: 'orange',
-  },
-  usernameContainer: {
-    flex: 1,
-    alignItems: "center",
   },
   section1: {
     marginVertical: 10,

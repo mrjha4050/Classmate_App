@@ -53,9 +53,9 @@ const ProfileScreen = () => {
               const teacherData = teacherDocSnap.data();
               setAdditionalInfo({
                 department: teacherData.department || "",
-                subjects: Array.isArray(teacherData.subjects)
-                  ? teacherData.subjects
-                  : [],
+                // subjects: Array.isArray(teacherData.subjects)
+                //   ? teacherData.subjects
+                  // : [],
               });
             }
           }

@@ -16,8 +16,7 @@ import TeacherHomeScreen from "./screens/TeacherHomeScreen";
 import { AuthProvider } from "./AuthContext";
 import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
-import Teacherslot from "./screens/Teacherslot"; 
-// import NotesList from "./components/Students/NotesList";
+import Teacherslot from "./screens/Teacherslot";
 
 const Stack = createStackNavigator();
 
@@ -25,55 +24,22 @@ export default function App() {
   return (
     <AuthProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="SignIn">
-          <Stack.Screen
-            name="SignIn"
-            component={SignInScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LoginScreen"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Signupscreen"
-            component={SignupScreen}
-            options={{ headerShown: false }}
-          />
-
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ headerShown: false }}
-          />
+        <Stack.Navigator
+          initialRouteName="SignIn"
+        >
+          <Stack.Screen name="SignIn" component={SignInScreen} />
+          <Stack.Screen name="LoginScreen" component={LoginScreen} />
+          <Stack.Screen name="Signupscreen" component={SignupScreen} />
+          <Stack.Screen name="Home" component={HomeScreen}  options={{ headerShown: false }}/>
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-          
-          {/* <Stack.Screen name="UploadNotes" component={UploadNotes} />
-          <Stack.Screen name="NotesList" component={NotesList} /> */}
-
           <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
-
           <Stack.Screen name="ViewTimeTable" component={ViewTimetableScreen} />
-
-          <Stack.Screen
-            name="CreateNoticeScreen"
-            component={CreateNoticeScreen}
-          />
-          
+          <Stack.Screen name="CreateNoticeScreen" component={CreateNoticeScreen} />
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
-          <Stack.Screen
-            name="TeacherHomeScreen"
-            component={TeacherHomeScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="TeacherHomeScreen" component={TeacherHomeScreen}  options={{ headerShown: false }}/>
           <Stack.Screen name="TeacherProfile" component={TeacherProfile} />
-          <Stack.Screen
-            name="CreateTimetableScreen"
-            component={CreateTimetableScreen}
-          />
-
+          <Stack.Screen name="CreateTimetableScreen" component={CreateTimetableScreen} />
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
         </Stack.Navigator>
       </NavigationContainer>

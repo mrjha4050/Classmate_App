@@ -1,4 +1,4 @@
-import React, { useState , useEffect  } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,72 +7,77 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-} from 'react-native';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import {db} from '../config'; 
-import {auth} from '../config';
-import {registerForPushNotifications} from '../controllers/registerForPushNotifications';
+} from "react-native";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db, auth } from "../config";
+import { registerForPushNotifications } from "../controllers/registerForPushNotifications";
+import * as Haptics from "expo-haptics";
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert("Error", "Please enter both email and password");
       return;
     }
+  
     setIsLoading(true);
     try {
+      console.log("Attempting to log in with email:", email);
+  
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const userDocRef = doc(db, 'users', user.uid);
+  
+      console.log("Firebase Auth User:", user);
+  
+      const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
+  
       if (!userDocSnap.exists()) {
-        throw new Error('User data not found.');
-      } 
-
-      const userData = userDocSnap.data();
-      console.log("User data:", userData);  
-      Alert.alert('Success', 'Login Successful!');
-
-      if (userData.role === 'student') {
-        navigation.navigate('Home', { email: user.email, ...userData });
-      } else if (userData.role === 'teacher') {
-        const teacherDocRef = doc(db, 'teachersinfo', user.uid);
-        const teacherDocSnap = await getDoc(teacherDocRef);
-        if (!teacherDocSnap.exists()) {
-          throw new Error('Teacher details not found.');
-        }
-
-        const teacherData = teacherDocSnap.data();
-        console.log("Teacher details found:", teacherData);  
-        navigation.navigate('TeacherHomeScreen', { email: user.email, ...teacherData });
+        console.error("User document not found in Firestore.");
+        throw new Error("User data not found.");
       }
-      setIsLoading(false);
+  
+      const userData = userDocSnap.data();
+      console.log("User data from Firestore:", userData);
+  
+      if (userData.role === "student") {
+        Alert.alert("Success", "Welcome, student!");
+        navigation.navigate("Home", { email: user.email, ...userData });
+      } else if (userData.role === "teacher") {
+        Alert.alert("Success", "Welcome, teacher!");
+        navigation.navigate("TeacherHomeScreen", { email: user.email, ...userData });
+      } else {
+        console.error("Unknown or missing role:", userData.role);
+        throw new Error("Your account role is not set up correctly. Please contact support.");
+      }
     } catch (error) {
-      console.error('Error logging in:', error);
-      Alert.alert('Error', error.message || 'Failed to login. Please try again.');
+      console.error("Login Error:", error.message || error);
+      Alert.alert("Login Failed", error.message || "Unable to login. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email');
-      return; 
+      Alert.alert("Error", "Please enter your email");
+      return;
     }
+
     try {
       await sendPasswordResetEmail(auth, email);
-      Alert.alert('Success', 'Password reset email sent!');
+      Alert.alert("Success", "Password reset email sent!");
     } catch (error) {
-      console.error('Error sending password reset email:', error);
-      Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+      console.error("Error sending password reset email:", error);
+      Alert.alert("Error", "Failed to send password reset email. Please try again.");
     }
   };
-  
+
   useEffect(() => {
     console.log("Registering for push notifications...");
     registerForPushNotifications()
@@ -128,16 +133,16 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
   },
   formContainer: {
-    width: '80%',
+    width: "80%",
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -146,32 +151,32 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   input: {
     height: 40,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#007BFF",
     paddingVertical: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loadingText: {
     marginTop: 20,
@@ -180,9 +185,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   signupRedirectText: {
-    color: '#007BFF',
+    color: "#007BFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

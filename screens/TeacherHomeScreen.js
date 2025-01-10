@@ -10,142 +10,39 @@ import {
   RefreshControl,
 } from "react-native";
 import { db } from "../config";
-import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import * as Notifications from "expo-notifications";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
-
-const TeacherHomeScreen = ({ route }) => {
+const TeacherHomeScreen = () => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [expoPushToken, setExpoPushToken] = useState("");
   const auth = getAuth();
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then((token) =>
-      setExpoPushToken(token)
-    );
-    fetchUserAndTeacherDetails();
+    fetchUserDetails();
     fetchNotices();
   }, []);
 
-  const fetchUserAndTeacherDetails = async () => {
+  const fetchUserDetails = async () => {
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
-
       if (userDocSnap.exists()) {
-        const teacherId = auth.currentUser.uid;
-        const teacherDocRef = doc(db, "teachersinfo", teacherId);
-        const teacherDocSnap = await getDoc(teacherDocRef);
-
-        if (teacherDocSnap.exists()) {
-          const teacherDetails = teacherDocSnap.data();
-          setUser({
-            ...userDocSnap.data(),
-            department: teacherDetails.department,
-            subjects: teacherDetails.subjects,
-          });
-          await setDoc(teacherDocRef, {
-            expoPushToken: expoPushToken,
-            ...teacherDetails,
-          });
-
-          await checkAttendance(teacherId);
-        } else {
-          Alert.alert("Error", "Teacher details not found!");
-        }
+        setUser(userDocSnap.data());
       } else {
-        Alert.alert("Error", "No such user!");
+        Alert.alert("Error", "User details not found!");
       }
     } catch (error) {
-      console.error("Error fetching user and teacher data:", error);
-      Alert.alert("Error", "Error fetching user and teacher data");
+      console.error("Error fetching user data:", error);
+      Alert.alert("Error", "Error fetching user data");
     }
   };
 
-  const checkAttendance = async (teacherId) => {
-    const today = getCurrentDate();
-    const attendanceRef = doc(db, "TeacherAttendance", teacherId);
-    const attendanceSnap = await getDoc(attendanceRef);
-
-    if (!attendanceSnap.exists() || attendanceSnap.data().date !== today) {
-      promptAttendance(teacherId, today);
-    }
-  };
-
-  const getCurrentDate = () => {
-    const date = new Date();
-    return date.toISOString().split("T")[0];
-  };
-
-  const promptAttendance = (teacherId, today) => {
-    Alert.alert(
-      "Attendance",
-      "Are you present or absent today?",
-      [
-        {
-          text: "Present",
-          onPress: () => markAttendance(teacherId, today, "present"),
-        },
-        {
-          text: "Absent",
-          onPress: () => markAttendance(teacherId, today, "absent"),
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
-  const markAttendance = async (teacherId, date, status) => {
-    try {
-      await setDoc(doc(db, "TeacherAttendance", teacherId), {
-        date: date,
-        status: status,
-      });
-
-      if (status === "absent") {
-        sendAbsentNotification();
-      }
-    } catch (error) {
-      console.error("Error marking attendance:", error);
-      Alert.alert("Error", "Error marking attendance");
-    }
-  };
-
-  const sendAbsentNotification = async () => {
-    try {
-      const teachersSnapshot = await getDocs(collection(db, "teachersinfo"));
-      const tokens = teachersSnapshot.docs
-        .map((doc) => doc.data().expoPushToken)
-        .filter((token) => token !== expoPushToken);
-
-      tokens.forEach(async (token) => {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Teacher Absent",
-            body: `${user?.name} is absent today.`,
-            data: { someData: "data" },
-          },
-          trigger: { seconds: 1 },
-        });
-      });
-    } catch (error) {
-      console.error("Error sending notification:", error);
-      Alert.alert("Error", "Error sending absence notification");
-    }
-  };
   const fetchNotices = async () => {
     try {
       const noticesCollection = collection(db, "notices");
@@ -154,7 +51,6 @@ const TeacherHomeScreen = ({ route }) => {
         id: doc.id,
         ...doc.data(),
       }));
-      noticesList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date
       setNotices(noticesList.slice(0, 2));
     } catch (error) {
       console.error("Error fetching notices:", error);
@@ -162,26 +58,9 @@ const TeacherHomeScreen = ({ route }) => {
     }
   };
 
-  const registerForPushNotificationsAsync = async () => {
-    let token;
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      Alert.alert("Failed to get push token for push notification!");
-      return;
-    }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    return token;
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchUserAndTeacherDetails();
+    await fetchUserDetails();
     await fetchNotices();
     setRefreshing(false);
   };
@@ -195,20 +74,12 @@ const TeacherHomeScreen = ({ route }) => {
           style={styles.avatarContainer}
           onPress={() => navigation.navigate("TeacherProfile")}
         >
-          <Text style={styles.avatarText}>
-            <MaterialIcons
-              name="person"
-              size={29}
-              color="black"
-              style={styles.bellIcon}
-            />
-          </Text>
+          <MaterialIcons name="person" size={29} color="black" />
         </TouchableOpacity>
       </View>
       <Text style={styles.subHeader}>
-        {user ? `Course:-${user.department}` : "Fetching details..."}
+        {user ? `Course:-${user.department || "BSCIT"}` : "Fetching details..."}
       </Text>
-
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
@@ -233,82 +104,49 @@ const TeacherHomeScreen = ({ route }) => {
             </TouchableOpacity>
           ))}
         </View>
-
         <View style={styles.section2}>
           <Text style={styles.sectionTitle}>Explore Dashboard</Text>
           <View style={styles.quickLinks}>
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("NoticePage");
-              }}
+              onPress={() => navigation.navigate("NoticePage")}
             >
               <Text style={styles.quickLinkText}>NoticePage</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("Teacherslot");
-              }}
+              onPress={() => navigation.navigate("Teacherslot")}
             >
               <Text style={styles.quickLinkText}>Teacher's Slot</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("CreateNoticeScreen");
-              }}
+              onPress={() => navigation.navigate("CreateNoticeScreen")}
             >
               <Text style={styles.quickLinkText}>Create Notice</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("ViewTimeTable");
-              }}
+              onPress={() => navigation.navigate("ViewTimeTable")}
             >
-              <Text style={styles.quickLinkText}> Timetable</Text>
+              <Text style={styles.quickLinkText}>Timetable</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("AttendanceScreen");
-              }}
+              onPress={() => navigation.navigate("AttendanceScreen")}
             >
-              <Text style={styles.quickLinkText}> Attendence</Text>
+              <Text style={styles.quickLinkText}>Attendance</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                navigation.navigate("CreateTimetableScreen");
-              }}
+              onPress={() => navigation.navigate("CreateTimetableScreen")}
             >
-              <Text style={styles.quickLinkText}> Create Timetable</Text>
+              <Text style={styles.quickLinkText}>Create Timetable</Text>
             </TouchableOpacity>
           </View>
         </View>
-
         <View style={styles.section3}>
           <Text style={styles.sectionTitle}>Updated Info</Text>
-          <TouchableOpacity
-            style={styles.quickLinkButton}
-            onPress={async () => {
-              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              navigation.navigate("AttendanceScreen");
-            }}>
-              <MaterialIcons name="assignment" size={24} color="black">+</MaterialIcons>
-          </TouchableOpacity>
           <View style={styles.card}>
             <Text style={styles.cardText}>Enterprise Java</Text>
             <Text style={styles.cardText}>3 new assignments</Text>
@@ -325,14 +163,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
-  container: {
-    paddingHorizontal: 10,
-    backgroundColor: "#fff",
-  },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",  
+    justifyContent: "space-between",
     paddingHorizontal: 10,
     paddingVertical: 15,
   },
@@ -346,24 +180,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-  iconButton: {
-    backgroundColor: "#000",
-    color: "#fff",
-    padding: 2,
-  },
-  bellIcon: {
-    // color: "orange",
-    color: "#007bff",
-  },
-  usernameContainer: {
-    flex: 1,
-    alignItems: "center",
-  },
   section1: {
     marginVertical: 10,
     marginHorizontal: 10,
     paddingHorizontal: 8,
-    // backgroundColor: "#FE8441",  // Orange Colour
     backgroundColor: "#007bff",
     borderRadius: 16,
   },
@@ -397,11 +217,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  cardText: {
-    fontSize: 13,
-    flex: 1,
-    marginRight: 6,
-  },
   quickLinks: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -416,11 +231,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   quickLinkText: {
-    // color: "#FF945B",  // Orange Colour
-    color :"#007bff",
+    color: "#007bff",
     fontSize: 16,
   },
 });
 
 export default TeacherHomeScreen;
-  

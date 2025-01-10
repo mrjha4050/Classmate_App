@@ -1,4 +1,3 @@
-// src/screens/CreateNoticeScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,19 +8,16 @@ import {
   Alert,
   SafeAreaView,
 } from "react-native";
-import { collection, addDoc ,getDoc, doc} from "firebase/firestore";
+import { collection, addDoc, getDoc, doc, getDocs } from "firebase/firestore";
 import { db } from "../config";
-import { getAuth } from "firebase/auth"; 
-import * as Notifications from 'expo-notifications';
-import { getDocs } from "firebase/firestore";
-
+import { getAuth } from "firebase/auth";
+import * as Notifications from "expo-notifications";
 
 const CreateNoticeScreen = ({ navigation }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [teacher, setTeacher] = useState("");
-  const [user, setUser] = useState(null); 
-  const [tag, setTag] = useState("Announcement"); 
+  const [tag, setTag] = useState("Announcement");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -44,24 +40,53 @@ const CreateNoticeScreen = ({ navigation }) => {
     fetchUser();
   }, []);
 
+  const handleCreateNotice = async () => {
+    if (!title || !content || !teacher || !tag) {
+      Alert.alert("Error", "Please fill out all fields");
+      return;
+    }
+
+    try {
+      const currentDate = new Date().toISOString();
+      await addDoc(collection(db, "notices"), {
+        title,
+        date: currentDate,
+        content,
+        teacher,
+        tag,
+        readBy: [],
+      });
+
+      Alert.alert("Success", "Notice created successfully!");
+
+      // Optionally send notifications to all users
+      sendNotificationsToAllUsers();
+
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error creating notice:", error);
+      Alert.alert("Error", "Failed to create notice. Please try again.");
+    }
+  };
+
   const sendNotificationsToAllUsers = async () => {
     try {
       const usersCollectionRef = collection(db, "users");
       const querySnapshot = await getDocs(usersCollectionRef);
-  
+
       const tokens = querySnapshot.docs
         .map((doc) => doc.data().expoPushToken)
-        .filter((token) => token);  
-  
+        .filter((token) => token);
+
       console.log("Sending notifications to tokens:", tokens);
-  
+
       for (const token of tokens) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: "New Notice",
             body: `A new notice titled "${title}" has been published.`,
           },
-          trigger: null,  
+          trigger: null,
         });
       }
     } catch (error) {
@@ -69,36 +94,6 @@ const CreateNoticeScreen = ({ navigation }) => {
       Alert.alert("Error", "Failed to send notifications.");
     }
   };
-
-
-  const handleCreateNotice = async () => {
-    if (title && content && teacher && tag) {
-      try {
-        const currentDate = new Date().toISOString();
-        await addDoc(collection(db, "notices"), {
-          title,
-          date: currentDate,
-          content,
-          teacher,
-          tag,
-          readBy: [],
-        });
-  
-        Alert.alert("Success", "Notice created successfully!");
-        
-        // Send notifications
-        sendNotificationsToAllUsers(); 
-  
-        navigation.goBack();
-      } catch (error) {
-        console.error("Error creating notice:", error);
-        Alert.alert("Error", "Failed to create notice. Please try again.");
-      }
-    } else {
-      Alert.alert("Error", "Please fill out all fields");
-    }
-  };
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,6 +105,8 @@ const CreateNoticeScreen = ({ navigation }) => {
           onChangeText={setTitle}
         />
         <TextInput
+          multiline
+          numberOfLines={10}
           style={styles.input}
           placeholder="Content"
           value={content}
@@ -119,91 +116,31 @@ const CreateNoticeScreen = ({ navigation }) => {
           style={styles.input}
           placeholder="Teacher's Name"
           value={teacher}
-          onChangeText={setTeacher}
-          editable={false}  
+          editable={false}
         />
         <Text style={styles.label}>Tag</Text>
         <View style={styles.tagContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tagButton,
-              tag === "Announcement" && styles.tagButtonActive,
-            ]}
-            onPress={() => {
-              setTag("Announcement");
-            }}
-          >
-            <Text
+          {["Announcement", "TimeTable", "Sports", "Event"].map((tagName) => (
+            <TouchableOpacity
+              key={tagName}
               style={[
-                styles.tagText,
-                tag === "Announcement" && styles.tagTextActive,
+                styles.tagButton,
+                tag === tagName && styles.tagButtonActive,
               ]}
+              onPress={() => setTag(tagName)}
             >
-              Announcement
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tagButton,
-              tag === "TimeTable" && styles.tagButtonActive,
-            ]}
-            onPress={() => {
-              setTag("TimeTable");
-            }}
-          >
-            <Text
-              style={[
-                styles.tagText,
-                tag === "TimeTable" && styles.tagTextActive,
-              ]}
-            >
-              TimeTable
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tagButton,
-              tag === "Sports" && styles.tagButtonActive,
-            ]}
-            onPress={() => {
-              setTag("Sports");
-            }}
-          >
-            <Text
-              style={[
-                styles.tagText,
-                tag === "Sports" && styles.tagTextActive,
-              ]}
-            >
-              Sports
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tagButton,
-              tag === "Event" && styles.tagButtonActive,
-            ]}
-            onPress={() => setTag("Event")}
-          >
-            <Text
-              style={[styles.tagText, tag === "Event" && styles.tagTextActive]}
-            >
-              Event
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.tagText,
+                  tag === tagName && styles.tagTextActive,
+                ]}
+              >
+                {tagName}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={async () => {
-            await Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Success
-            );
-            handleCreateNotice();
-          }}
-        >
+        <TouchableOpacity style={styles.createButton} onPress={handleCreateNotice}>
           <Text style={styles.createButtonText}>Create Notice</Text>
         </TouchableOpacity>
       </View>
@@ -216,12 +153,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
   },
   formContainer: {
     backgroundColor: "#fff",

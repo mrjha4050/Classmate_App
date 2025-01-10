@@ -11,11 +11,10 @@ import {
   ScrollView,
 } from "react-native";  
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { Picker } from "@react-native-picker/picker";
 import MultiSelect from "react-native-multiple-select";
-import { subjects } from "../components/subjects";
-import {db} from '../config';
+import {db, auth} from '../config';
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -47,7 +46,7 @@ const SignupScreen = ({ navigation }) => {
         });
 
         if (role === "student") {
-          console.log("Additional Info:", additionalInfo); // Debugging line
+          console.log("Additional Info:", additionalInfo);  
           const studentDocRef = doc(db, "studentinfo", user.uid);
           await setDoc(studentDocRef, {
             userId: user.uid,
@@ -61,13 +60,13 @@ const SignupScreen = ({ navigation }) => {
           await setDoc(teacherDocRef, {
             userId: user.uid,
             department: additionalInfo.department,
-            subjects: selectedSubjects,
+            // subjects: selectedSubjects,
           });
         }
 
         Alert.alert("Success", "Signup Successful!");
         setIsLoading(false);
-        navigation.navigate("Login1");
+        navigation.navigate("LoginScreen");
       } catch (error) {
         console.error("Error signing up:", error);
         setIsLoading(false);
@@ -188,29 +187,6 @@ const SignupScreen = ({ navigation }) => {
                 <Picker.Item label="BFM" value="BFM" />
                 <Picker.Item label="BBI" value="BBI" />
               </Picker>
-              <Text style={styles.label}>Subjects</Text>
-              <MultiSelect
-                items={subjects}
-                uniqueKey="id"
-                onSelectedItemsChange={(selectedItems) =>
-                  setSelectedSubjects(selectedItems)
-                }
-                selectedItems={selectedSubjects}
-                selectText="Select Subjects"
-                searchInputPlaceholderText="Search Subjects..."
-                onChangeInput={(text) => console.log(text)}
-                tagRemoveIconColor="#CCC"
-                tagBorderColor="#CCC"
-                tagTextColor="#CCC"
-                selectedItemTextColor="#007BFF"
-                selectedItemIconColor="#007BFF"
-                itemTextColor="#000"
-                displayKey="name"
-                searchInputStyle={{ color: "#CCC" }}
-                submitButtonColor="#007BFF"
-                submitButtonText="Submit"
-                styleDropdownMenuSubsection={styles.multiSelect}
-              />
             </View>
           )}
 
