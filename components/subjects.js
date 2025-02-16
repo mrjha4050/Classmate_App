@@ -15,5 +15,12 @@ export const subjects = [
     { id: "Digital Electronics", name: "Digital Electronics" },
     { id: "Microprocessor", name: "Microprocessor" },
     { id: "DSA", name: "DSA" },
+    { id: "SQA", name: "SQA" },
+
   ];
+
+
+export const Thirdyear = [
+  
+]
   

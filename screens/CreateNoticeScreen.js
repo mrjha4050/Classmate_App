@@ -8,7 +8,7 @@ import {
   Alert,
   SafeAreaView,
 } from "react-native";
-import { collection, addDoc, getDoc, doc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDoc, doc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config";
 import { getAuth } from "firebase/auth";
 import * as Notifications from "expo-notifications";
@@ -18,16 +18,28 @@ const CreateNoticeScreen = ({ navigation }) => {
   const [content, setContent] = useState("");
   const [teacher, setTeacher] = useState("");
   const [tag, setTag] = useState("Announcement");
+  const [department, setDepartment] = useState(""); // Store teacher's department
 
   useEffect(() => {
     const fetchUser = async () => {
       const auth = getAuth();
       try {
+        // Fetch teacher's name and department
         const userDocRef = doc(db, "users", auth.currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
+        const userDocSnap = await getDoc(userDocRef);
 
-        if (docSnap.exists()) {
-          setTeacher(docSnap.data().name);
+        if (userDocSnap.exists()) {
+          setTeacher(userDocSnap.data().name);
+
+          // Fetch teacher's department from teachersinfo
+          const teacherInfoRef = doc(db, "teachersinfo", auth.currentUser.uid);
+          const teacherInfoSnap = await getDoc(teacherInfoRef);
+
+          if (teacherInfoSnap.exists()) {
+            setDepartment(teacherInfoSnap.data().department);
+          } else {
+            Alert.alert("Error", "Teacher details not found!");
+          }
         } else {
           Alert.alert("Error", "No such user!");
         }
@@ -41,7 +53,7 @@ const CreateNoticeScreen = ({ navigation }) => {
   }, []);
 
   const handleCreateNotice = async () => {
-    if (!title || !content || !teacher || !tag) {
+    if (!title || !content || !teacher || !tag || !department) {
       Alert.alert("Error", "Please fill out all fields");
       return;
     }
@@ -54,13 +66,14 @@ const CreateNoticeScreen = ({ navigation }) => {
         content,
         teacher,
         tag,
+        department, // Include department in the notice
         readBy: [],
       });
 
       Alert.alert("Success", "Notice created successfully!");
 
-      // Optionally send notifications to all users
-      sendNotificationsToAllUsers();
+      // Send notifications to students in the same department
+      await sendNotificationsToDepartmentStudents();
 
       navigation.goBack();
     } catch (error) {
@@ -69,10 +82,14 @@ const CreateNoticeScreen = ({ navigation }) => {
     }
   };
 
-  const sendNotificationsToAllUsers = async () => {
+  const sendNotificationsToDepartmentStudents = async () => {
     try {
-      const usersCollectionRef = collection(db, "users");
-      const querySnapshot = await getDocs(usersCollectionRef);
+      // Fetch students in the same department
+      const studentsQuery = query(
+        collection(db, "students"),
+        where("department", "==", department)
+      );
+      const querySnapshot = await getDocs(studentsQuery);
 
       const tokens = querySnapshot.docs
         .map((doc) => doc.data().expoPushToken)
@@ -80,11 +97,12 @@ const CreateNoticeScreen = ({ navigation }) => {
 
       console.log("Sending notifications to tokens:", tokens);
 
+      // Send notifications to each student
       for (const token of tokens) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: "New Notice",
-            body: `A new notice titled "${title}" has been published.`,
+            body: `A new notice titled "${title}" has been published in ${department}.`,
           },
           trigger: null,
         });

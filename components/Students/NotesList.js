@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
+import { doc, getDoc, collection, getDocs, collectionGroup, where } from "firebase/firestore";
 import { Linking } from 'react-native';
 
 const NotesList = ({ subject }) => {
@@ -13,7 +13,7 @@ const NotesList = ({ subject }) => {
       .onSnapshot((doc) => {
         if (doc.exists) {
           setNotes(doc.data().notes || []);
-        }
+        } 
       });
 
     return () => unsubscribe();

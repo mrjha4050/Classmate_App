@@ -1,10 +1,8 @@
-// src/screens/NoticesScreen.js
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
@@ -13,20 +11,20 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { AuthContext } from '../AuthContext';
-import { db } from '../config'; 
+import { db } from '../config';
 
 const NoticesScreen = () => {
   const [notices, setNotices] = useState([]);
   const [filteredNotices, setFilteredNotices] = useState([]);
   const [filter, setFilter] = useState('All');
   const navigation = useNavigation();
-  const { user } = useContext(AuthContext); 
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchNotices = async () => {
       const noticesCollection = collection(db, 'notices');
       const noticesSnapshot = await getDocs(noticesCollection);
-      const noticesList = noticesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const noticesList = noticesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), readBy: doc.data().readBy || [] })); // Ensure readBy is initialized
       setNotices(noticesList);
       filterNoticesByTagAndUser(noticesList, 'All');
     };
@@ -39,6 +37,7 @@ const NoticesScreen = () => {
       (tag === 'All' || notice.tag === tag) && !notice.readBy.includes(user.uid)
     );
     setFilteredNotices(filtered);
+    setFilter(tag);
   };
 
   const handleMarkAsRead = async (noticeId) => {
@@ -50,7 +49,6 @@ const NoticesScreen = () => {
       setNotices(notices.map(notice => notice.id === noticeId ? { ...notice, readBy: [...notice.readBy, user.uid] } : notice));
       filterNoticesByTagAndUser(notices, filter);
       Alert.alert("Success", "Notice marked as read");
-
     } catch (error) {
       console.error('Error marking notice as read: ', error);
     }
@@ -58,37 +56,19 @@ const NoticesScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+ 
       <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'All' && styles.filterButtonActive]}
-          onPress={() => filterNoticesByTagAndUser(notices, 'All')}
-        >
-          <Text style={[styles.filterText, filter === 'All' && styles.filterTextActive]}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'Announcement' && styles.filterButtonActive]}
-          onPress={() => filterNoticesByTagAndUser(notices, 'Announcement')}
-        >
-          <Text style={[styles.filterText, filter === 'Announcement' && styles.filterTextActive]}>Announcements</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'Sports' && styles.filterButtonActive]}
-          onPress={() => filterNoticesByTagAndUser(notices, 'Sports')}
-        >
-          <Text style={[styles.filterText, filter === 'Sports' && styles.filterTextActive]}>Sports</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'TimeTable' && styles.filterButtonActive]}
-          onPress={() => filterNoticesByTagAndUser(notices, 'TimeTable')}
-        >
-          <Text style={[styles.filterText, filter === 'TimeTable' && styles.filterTextActive]}>TimeTable</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'Event' && styles.filterButtonActive]}
-          onPress={() => filterNoticesByTagAndUser(notices, 'Event')}
-        >
-          <Text style={[styles.filterText, filter === 'Event' && styles.filterTextActive]}>Events</Text>
-        </TouchableOpacity>
+        {['All', 'Announcement', 'Sports', 'TimeTable', 'Event'].map((tagName) => (
+          <TouchableOpacity
+            key={tagName}
+            style={[styles.filterButton, filter === tagName && styles.filterButtonActive]}
+            onPress={() => filterNoticesByTagAndUser(notices, tagName)}
+          >
+            <Text style={[styles.filterText, filter === tagName && styles.filterTextActive]}>
+              {tagName}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
       <ScrollView contentContainerStyle={styles.noticesContainer}>
         {filteredNotices.map(notice => (
@@ -97,15 +77,16 @@ const NoticesScreen = () => {
             style={styles.noticeCard}
             onPress={() => navigation.navigate('NoticeDetail', { notice })}
           >
-          <View key={notice.id} style={styles.noticeCard}>
             <Text style={styles.noticeTitle}>{notice.title}</Text>
             <Text style={styles.noticeDate}>Date: {new Date(notice.date).toLocaleString()}</Text>
             <Text style={styles.noticeTeacher}>Teacher: {notice.teacher}</Text>
             <Text style={styles.noticeContent}>{notice.content}</Text>
-            <TouchableOpacity style={styles.markAsReadButton} onPress={() => handleMarkAsRead(notice.id)}>
+            <TouchableOpacity
+              style={styles.markAsReadButton}
+              onPress={() => handleMarkAsRead(notice.id)}
+            >
               <Text style={styles.markAsReadText}>Mark as Read</Text>
             </TouchableOpacity>
-          </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -118,10 +99,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    backgroundColor: '#2E86C1',
+    padding: 20,
+    alignItems: 'center',
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginVertical: 10,
+    paddingHorizontal: 10,
   },
   filterButton: {
     backgroundColor: '#ddd',
@@ -134,6 +126,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     color: '#555',
+    fontSize: 14,
   },
   filterTextActive: {
     color: '#fff',
@@ -152,8 +145,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   noticeTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#2C3E50',
   },
   noticeDate: {
     fontSize: 14,
@@ -170,7 +164,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   markAsReadButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#28a745',
     padding: 10,
     borderRadius: 5,
     marginTop: 10,

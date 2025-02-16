@@ -7,10 +7,12 @@ import {
   StyleSheet,
   Alert,
   Modal,
+  SafeAreaView,
 } from "react-native";
 import { db } from "../config";
 import { collection, getDocs, getDoc, doc, addDoc } from "firebase/firestore";
 import * as Notifications from "expo-notifications";
+import { YEARS, YEAR_SUBJECTS } from "../components/constant";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,39 +25,28 @@ Notifications.setNotificationHandler({
 const AttendanceScreen = () => {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
-  const [selectedYear, setSelectedYear] = useState("Third Year");
-  const [subjects, setSubjects] = useState(["SIC", "GIS", "SQA", "ITSM", "BI"]);  
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [subjectModalVisible, setSubjectModalVisible] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(YEARS[2]);
+  const [subjects, setSubjects] = useState(YEAR_SUBJECTS[selectedYear]);
   const [yearModalVisible, setYearModalVisible] = useState(false);
+  const [subjectModalVisible, setSubjectModalVisible] = useState(false);
 
-  const years = ["First Year", "Second Year", "Third Year"];
-
-  // Fetch students based on selected year
   const fetchStudents = async () => {
     try {
-      const studentInfoSnapshot = await getDocs(collection(db, "studentinfo"));
+      const studentInfoSnapshot = await getDocs(collection(db, "students"));
       const studentInfoData = studentInfoSnapshot.docs
         .map((doc) => ({
           id: doc.id,
-          rollNo: doc.data().rollNumber,
+          rollNo: doc.data().studentrollno,
           userId: doc.data().userId,
-          year: doc.data().year,
+          year: doc.data().studentyear,
+          name: doc.data().studentname,
+          email: doc.data().studentemail,
         }))
-        .filter((student) => student.year === selectedYear);
+        .filter((student) => student.year === selectedYear)
+        .sort((a, b) => a.rollNo - b.rollNo); // Sort by rollNo in ascending order
 
-      const studentsWithNames = await Promise.all(
-        studentInfoData.map(async (student) => {
-          const userDoc = await getDoc(doc(db, "users", student.userId));
-          const userName = userDoc.exists() ? userDoc.data().name : "Unknown";
-          const expoPushToken = userDoc.exists()
-            ? userDoc.data().expoPushToken
-            : null;
-          return { ...student, name: userName, expoPushToken };
-        })
-      );
-
-      setStudents(studentsWithNames);
+      setStudents(studentInfoData);
     } catch (error) {
       console.error("Error fetching students:", error.message);
       Alert.alert("Error", `Failed to fetch students: ${error.message}`);
@@ -64,6 +55,7 @@ const AttendanceScreen = () => {
 
   useEffect(() => {
     fetchStudents();
+    setSubjects(YEAR_SUBJECTS[selectedYear] || []);
   }, [selectedYear]);
 
   const handleAttendance = (id, status) => {
@@ -79,7 +71,7 @@ const AttendanceScreen = () => {
       status === "present"
         ? `You have been marked as present for ${selectedSubject}.`
         : `You have been marked as absent for ${selectedSubject}.`;
-  
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -99,7 +91,7 @@ const AttendanceScreen = () => {
       Alert.alert("Error", "Please select a subject before saving attendance.");
       return;
     }
-  
+
     try {
       const currentDate = new Date().toISOString().split("T")[0];
       const formattedData = students.map((student) => ({
@@ -109,17 +101,17 @@ const AttendanceScreen = () => {
         status: attendance[student.id] || "N/A",
         date: currentDate,
       }));
-  
+
       await addDoc(collection(db, "studentAttendance"), {
         attendance: formattedData,
         timestamp: new Date(),
       });
-  
+
       formattedData.forEach((student) => {
         const selectedStudent = students.find(
           (s) => s.rollNo === student.rollNo
         );
-  
+
         if (selectedStudent?.expoPushToken) {
           if (student.status === "P") {
             sendPushNotification(
@@ -136,7 +128,7 @@ const AttendanceScreen = () => {
           }
         }
       });
-  
+
       Alert.alert("Success", "Attendance saved and notifications sent!");
     } catch (error) {
       Alert.alert("Error", `Failed to save attendance: ${error.message}`);
@@ -174,7 +166,7 @@ const AttendanceScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header for Year Selection */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setYearModalVisible(true)}>
@@ -193,7 +185,7 @@ const AttendanceScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Select Year</Text>
-            {years.map((year) => (
+            {YEARS.map((year) => (
               <TouchableOpacity
                 key={year}
                 style={styles.modalItem}
@@ -266,15 +258,15 @@ const AttendanceScreen = () => {
       <TouchableOpacity style={styles.saveButton} onPress={saveAttendance}>
         <Text style={styles.saveButtonText}>Save Attendance</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: { backgroundColor: "#3b4cca", padding: 15, alignItems: "center" },
-  classInfo: { color: "white", fontSize: 16, fontWeight: "bold" },
-  highlightedText: { color: "red" },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  header: { backgroundColor: "#2E86C1", padding: 20, alignItems: "center" },
+  classInfo: { color: "white", fontSize: 18, fontWeight: "bold" },
+  highlightedText: { color: "#FFD700" }, // Gold color for highlighted text
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -288,7 +280,7 @@ const styles = StyleSheet.create({
     width: "80%",
     alignItems: "center",
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 20 },
   modalItem: {
     paddingVertical: 10,
     width: "100%",
@@ -296,7 +288,7 @@ const styles = StyleSheet.create({
   },
   modalItemText: { fontSize: 16, color: "black" },
   closeButton: {
-    backgroundColor: "#3b4cca",
+    backgroundColor: "#2E86C1",
     padding: 10,
     borderRadius: 5,
     marginTop: 20,
@@ -305,33 +297,36 @@ const styles = StyleSheet.create({
   },
   closeButtonText: { color: "white", fontWeight: "bold" },
   subjectButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: "#28a745",
     padding: 15,
     margin: 15,
     borderRadius: 10,
     alignItems: "center",
   },
   subjectButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#3b4cca",
+    backgroundColor: "#fff",
     padding: 15,
     marginVertical: 5,
     marginHorizontal: 10,
     borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
-  rollNoText: { color: "white", fontSize: 16, flex: 1 },
+  rollNoText: { color: "#2C3E50", fontSize: 16, flex: 1 },
   button: { paddingVertical: 10, paddingHorizontal: 15, borderRadius: 5 },
-  presentButton: { backgroundColor: "green" },
-  presentButtonActive: { backgroundColor: "darkgreen" },
-  absentButton: { backgroundColor: "red" },
-  absentButtonActive: { backgroundColor: "darkred" },
+  presentButton: { backgroundColor: "#28a745" },
+  presentButtonActive: { backgroundColor: "#218838" },
+  absentButton: { backgroundColor: "#dc3545" },
+  absentButtonActive: { backgroundColor: "#c82333" },
   buttonText: { color: "white", fontSize: 16, fontWeight: "bold" },
   saveButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: "#2E86C1",
     padding: 15,
     margin: 15,
     borderRadius: 10,

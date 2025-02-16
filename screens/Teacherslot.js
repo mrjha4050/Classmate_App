@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity } from "react-native";
-import { db } from "../config"; // Ensure this points to your Firebase config
-import { collection, doc, getDoc } from "firebase/firestore";
+import { db } from "../config";  
+import { doc, getDoc } from "firebase/firestore";
 import { format, addDays, parseISO } from "date-fns";
+import { YEARS, COURSES } from "../components/constant";
 
 const Teacherslot = () => {
   const [teachers, setTeachers] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("Bsc.IT");
-  const [selectedYear, setSelectedYear] = useState("Third Year");
+  const [selectedCourse, setSelectedCourse] = useState(COURSES[0]);
+  const [selectedYear, setSelectedYear] = useState(YEARS[2]);
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
 
@@ -86,7 +87,7 @@ const Teacherslot = () => {
     setTeachers(Object.entries(teacherFreeSlots).map(([teacher, freeSlots]) => ({ teacher, freeSlots })));
   };
 
-  const renderteachersinfo = ({ item }) => (
+  const renderTeacherInfo = ({ item }) => (
     <View style={styles.teacherRow}>
       <Text style={styles.teacherName}>{item.teacher}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -123,9 +124,9 @@ const Teacherslot = () => {
     );
   };
 
-
   return (
     <View style={styles.container}>
+      <Text style={styles.header}>Teacher Availability</Text>
       <FlatList
         data={days}
         renderItem={renderDayItem}
@@ -138,7 +139,8 @@ const Teacherslot = () => {
       <FlatList
         data={teachers}
         keyExtractor={item => item.teacher}
-        renderItem={renderteachersinfo}
+        renderItem={renderTeacherInfo}
+        contentContainerStyle={styles.teacherList}
       />
     </View>
   );
@@ -149,6 +151,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f8f8',
     padding: 10,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   daySelector: {
     paddingVertical: 10,
@@ -188,6 +197,9 @@ const styles = StyleSheet.create({
   },
   selectedDaySubText: {
     color: '#000',
+  },
+  teacherList: {
+    paddingBottom: 20,
   },
   teacherRow: {
     flexDirection: 'row',

@@ -3,11 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, 
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
-import { format , addDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { Ionicons } from '@expo/vector-icons';  
 
-
-const ViewTimetableScreen = () => {
-  const [timetable, setTimetable] = useState({ lectures: [] }); // Ensure default structure
+const ViewTimetableScreen = ({ navigation }) => {  
+  const [timetable, setTimetable] = useState({ lectures: [] });  
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [modalVisible, setModalVisible] = useState(false);
@@ -69,6 +69,17 @@ const ViewTimetableScreen = () => {
 
   return (
     <View style={styles.container}>
+
+      <View style={styles.topBar}>
+        <Text style={styles.topBarTitle}>Edit Timetable</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CreateTimetableScreen')} // Navigate to CreateNoticeScreen
+          style={styles.editButton}
+        >
+          <Ionicons name="create-outline" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
         <Text style={styles.label}>Select Year</Text>
         <Text style={styles.selectionText}>{selectedYear}</Text>
@@ -109,7 +120,7 @@ const ViewTimetableScreen = () => {
       </View>
 
       <ScrollView style={styles.contentContainer}>
-        {timetable?.lectures?.length > 0 ? ( // Optional chaining and checking length
+        {timetable?.lectures?.length > 0 ? (  
           <View style={styles.dayContainer}>
             {timetable.lectures.map((lecture, index) => (
               <View key={index} style={styles.classContainer}>
@@ -143,10 +154,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#f0f0f0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  topBarTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  editButton: {
+    padding: 5,
+  },
   selectionView: {
     padding: 15,
     backgroundColor: '#f0f0f0',
-    
     borderRadius: 10,
     margin: 10,
   },
@@ -263,8 +289,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     alignItems: 'center',
-    elevation: 5,  
-    shadowColor: '#000',  
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -277,20 +303,6 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
-  },
-  teacherContainer: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    marginBottom: 10,
-  },
-  teacherName: {
-    fontWeight: 'bold',
-  },
-  availabilityText: {
-    fontStyle: 'italic',
-  },
-  timeSlot: {
-    color: '#2D9CDB',
   },
 });
 

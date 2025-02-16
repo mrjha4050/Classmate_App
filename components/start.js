@@ -35,13 +35,6 @@ const SignInScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>Teacher</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-        onPress={() => navigation.navigate('Signupscreen')}
-        style={styles.signupRedirect}
-      >
-        <Text style={styles.signupRedirectText}>New User</Text>
-      </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   );

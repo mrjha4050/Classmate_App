@@ -5,44 +5,29 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Modal,
-  FlatList,
+  ScrollView,
   TextInput,
+  SafeAreaView, // Added SafeAreaView
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { CheckBox } from "react-native-elements"; // For checkboxes
 import { AuthContext } from "../AuthContext";
-import {
-  doc,
-  getDoc,
-  updateDocs,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../config";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // For custom safe area handling
 
-const TeacherProfile = () => {
-  const { user } = useContext(AuthContext);  
+const TeacherProfile = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [teacherName, setTeacherName] = useState("");
-  const [lectures, setLectures] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(
-    new Date().toLocaleString("en-US", { weekday: "long" })
-  );
-  const [scheduleVisible, setScheduleVisible] = useState(false);  
-  const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [teacherProfile, setTeacherProfile] = useState({});
+  const [isEditing, setIsEditing] = useState(false); // Toggle edit mode
   const [newDepartment, setNewDepartment] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [selectedSubjects, setSelectedSubjects] = useState([]); // Array of selected subjects
 
-  const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
+  const departments = ["Bsc.IT", "Bsc.CS", "BBA", "B.Com"];
+  const subjects = ["ITSM", "SOA", "SIC", "GIS", "Python"];
 
   const fetchTeacherName = async (teacherId) => {
     try {
@@ -59,37 +44,6 @@ const TeacherProfile = () => {
     }
   };
 
-  const fetchLecturesByDayAndTeacher = async (day) => {
-    try {
-      if (!teacherName) {
-        console.warn("Teacher name is not available.");
-        return;
-      }
-  
-      // Reference the document for the specific day
-      const dayDocRef = doc(db, `timetable/Bsc.IT/Third Year/${day}`);
-      const dayDocSnap = await getDoc(dayDocRef);
-  
-      if (dayDocSnap.exists()) {
-        const dayData = dayDocSnap.data();
-        const allLectures = dayData.lectures || []; // Get the "lectures" array from the document
-  
-        // Filter lectures for the current teacher
-        const teacherLectures = allLectures.filter(
-          (lecture) => lecture.teacher === teacherName
-        );
-  
-        setLectures(teacherLectures); // Update the state with filtered lectures
-      } else {
-        console.warn(`No timetable found for day: ${day}`);
-        setLectures([]); // No lectures for the day
-      }
-    } catch (error) {
-      console.error("Error fetching lectures by day and teacher:", error);
-      Alert.alert("Error", `Failed to fetch lectures for ${day}`);
-    }
-  };
-
   const fetchTeacherProfile = async () => {
     try {
       const teacherDocRef = doc(db, "teachersinfo", user.uid);
@@ -99,6 +53,7 @@ const TeacherProfile = () => {
         setTeacherProfile(data);
         setNewDepartment(data.department || "");
         setNewPhone(data.phone || "");
+        setSelectedSubjects(data.subjects || []); // Initialize selected subjects
       }
     } catch (error) {
       console.error("Error fetching teacher profile:", error);
@@ -112,10 +67,11 @@ const TeacherProfile = () => {
       await updateDoc(teacherDocRef, {
         department: newDepartment,
         phone: newPhone,
+        subjects: selectedSubjects, // Save selected subjects
       });
       Alert.alert("Success", "Profile updated successfully!");
-      setEditProfileVisible(false);
-      fetchTeacherProfile();
+      setIsEditing(false); // Exit edit mode
+      fetchTeacherProfile(); // Refresh profile data
     } catch (error) {
       console.error("Error updating teacher profile:", error);
       Alert.alert("Error", "Failed to update profile.");
@@ -126,9 +82,8 @@ const TeacherProfile = () => {
     if (user?.uid) {
       fetchTeacherName(user.uid);
       fetchTeacherProfile();
-      fetchLecturesByDayAndTeacher(selectedDay);
     }
-  }, [user?.uid, selectedDay, teacherName]);
+  }, [user?.uid]);
 
   const getInitials = (name) => {
     if (!name) return "??";
@@ -140,185 +95,253 @@ const TeacherProfile = () => {
     return initials;
   };
 
-  const renderLectureItem = ({ item }) => (
-    <View style={styles.lectureItem}>
-      <Text style={styles.lectureText}>
-        {item.subject} - {item.location}
-      </Text>
-      <Text style={styles.lectureText}>{item.timeSlot}</Text>
-    </View>
-  );
+  const toggleSubjectSelection = (subject) => {
+    // Add or remove the subject from the selectedSubjects array
+    if (selectedSubjects.includes(subject)) {
+      setSelectedSubjects(selectedSubjects.filter((item) => item !== subject));
+    } else {
+      setSelectedSubjects([...selectedSubjects, subject]);
+    }
+  };
+
+  // Get safe area insets
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.profileSection}>
-        <View style={styles.initialsContainer}>
-          <Text style={styles.initialsText}>{getInitials(teacherName)}</Text>
-        </View>
-        <Text style={styles.profileName}>{teacherName || "Unknown"}</Text>
-        <View style={styles.row}>
-          <MaterialIcons name="schedule" size={16} color="gray" />
-          <Text style={styles.profileSubtitle}>
-            Department: {teacherProfile.department || "N/A"}
-          </Text>
-        </View>
-      </View>
+    <SafeAreaView style={{ flex: 1, paddingTop: insets.top }}>
 
-      <View style={styles.daySelector}>
-        {days.map((day) => (
+
+<View style={styles.headerContainer}>
           <TouchableOpacity
-            key={day}
-            style={[
-              styles.dayButton,
-              selectedDay === day && styles.dayButtonSelected,
-            ]}
-            onPress={() => setSelectedDay(day)}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <Text
-              style={[
-                styles.dayButtonText,
-                selectedDay === day && styles.dayButtonTextSelected,
-              ]}
-            >
-              {day}
+            <MaterialIcons name="arrow-back" size={24} color="#2E86C1" />
+          </TouchableOpacity>
+          <Text style={styles.header}>Profile</Text>
+          <View style={styles.headerPlaceholder} /> Placeholder for alignment
+        </View>
+      <ScrollView style={styles.container}>
+
+        {/* Profile Section */}
+        <View style={styles.profileSection}>
+          <View style={styles.initialsContainer}>
+            <Text style={styles.initialsText}>{getInitials(teacherName)}</Text>
+          </View>
+          <Text style={styles.profileName}>{teacherName || "Unknown"}</Text>
+
+          {/* Department */}
+          <View style={styles.detailRow}>
+            <MaterialIcons name="school" size={20} color="#2E86C1" />
+            <Text style={styles.detailText}>
+              Department: {teacherProfile.department || "N/A"}
             </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+          </View>
 
-      <TouchableOpacity
-        style={styles.viewAllButton}
-        onPress={() => setScheduleVisible(true)}
-      >
-        <Text style={styles.viewAllButtonText}>View Schedule</Text>
-      </TouchableOpacity>
+          {/* Phone */}
+          <View style={styles.detailRow}>
+            <MaterialIcons name="phone" size={20} color="#2E86C1" />
+            <Text style={styles.detailText}>
+              Phone: {teacherProfile.phone || "N/A"}
+            </Text>
+          </View>
 
-      <TouchableOpacity
-        style={styles.editProfileButton}
-        onPress={() => setEditProfileVisible(true)}
-      >
-        <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
-
-      {/* Schedule Modal */}
-      <Modal visible={scheduleVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Schedule for {selectedDay}</Text>
-          <FlatList
-            data={lectures}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderLectureItem}
-          />
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setScheduleVisible(false)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+          {/* Subjects */}
+          <View style={styles.detailRow}>
+            <MaterialIcons name="book" size={20} color="#2E86C1" />
+            <Text style={styles.detailText}>
+              Subjects: {teacherProfile.subjects?.join(", ") || "N/A"}
+            </Text>
+          </View>
         </View>
-      </Modal>
 
-      {/* Edit Profile Modal */}
-      <Modal visible={editProfileVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Edit Profile</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Department"
-            value={newDepartment}
-            onChangeText={setNewDepartment}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Phonenumber"
-            value={newPhone}
-            onChangeText={setNewPhone}
-            keyboardType="phone-pad"
-          />
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={updateTeacherProfile}
-          >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setEditProfileVisible(false)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
-    </View>
+        {/* Edit Profile Button */}
+        <TouchableOpacity
+          style={styles.editProfileButton}
+          onPress={() => setIsEditing(!isEditing)} // Toggle edit mode
+        >
+          <Text style={styles.editProfileButtonText}>
+            {isEditing ? "Cancel" : "Edit Profile"}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Edit Form (Visible when isEditing is true) */}
+        {isEditing && (
+          <View style={styles.editForm}>
+            {/* Department Dropdown */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Department</Text>
+              <Picker
+                selectedValue={newDepartment}
+                onValueChange={(itemValue) => setNewDepartment(itemValue)}
+                style={styles.picker}
+              >
+                {departments.map((dept, index) => (
+                  <Picker.Item key={index} label={dept} value={dept} />
+                ))}
+              </Picker>
+            </View>
+
+            {/* Subject Checkboxes */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Subjects</Text>
+              {subjects.map((subject, index) => (
+                <CheckBox
+                  key={index}
+                  title={subject}
+                  checked={selectedSubjects.includes(subject)}
+                  onPress={() => toggleSubjectSelection(subject)}
+                  containerStyle={styles.checkboxContainer}
+                  textStyle={styles.checkboxText}
+                />
+              ))}
+            </View>
+
+            {/* Phone Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Phone</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter phone number"
+                value={newPhone}
+                onChangeText={setNewPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            {/* Save Button */}
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={updateTeacherProfile}
+            >
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f8f9fa" },
-  profileSection: { alignItems: "center", marginBottom: 20 },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#F4F6F7",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7E9",
+  },
+  backButton: {
+    padding: 8,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#2C3E50",
+  },
+  headerPlaceholder: {
+    width: 24, // Same as back button size for alignment
+  },
+  profileSection: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
   initialsContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#007bff",
+    backgroundColor: "#2E86C1",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
-  initialsText: { fontSize: 36, color: "white", fontWeight: "bold" },
-  profileName: { fontSize: 20, fontWeight: "bold" },
-  row: { flexDirection: "row", alignItems: "center", marginTop: 5 },
-  profileSubtitle: { marginLeft: 5, color: "gray" },
-  viewAllButton: {
-    backgroundColor: "#007bff",
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 10,
-    alignItems: "center",
+  initialsText: {
+    fontSize: 36,
+    color: "white",
+    fontWeight: "bold",
   },
-  viewAllButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  editProfileButton: {
-    backgroundColor: "#28a745",
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 10,
-    alignItems: "center",
-  },
-  editProfileButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  modalContainer: { flex: 1, padding: 20, backgroundColor: "#f8f9fa" },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 20 },
-  input: {
-    borderColor: "#ddd",
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
+  profileName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2C3E50",
     marginBottom: 10,
   },
-  saveButton: {
-    backgroundColor: "#007bff",
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 10,
-    alignItems: "center",
-  },
-  saveButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  closeButton: {
-    backgroundColor: "#dc3545",
-    borderRadius: 5,
-    padding: 10,
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  closeButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  daySelector: {
+  detailRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 16,
+    color: "#2C3E50",
+    marginLeft: 10,
+  },
+  editProfileButton: {
+    backgroundColor: "#2E86C1",
+    borderRadius: 8,
+    padding: 15,
+    alignItems: "center",
     marginVertical: 10,
   },
-  dayButton: { padding: 10, borderRadius: 5, backgroundColor: "#f1f1f1" },
-  dayButtonSelected: { backgroundColor: "#007bff" },
-  dayButtonText: { fontSize: 14, color: "#333" },
-  dayButtonTextSelected: { color: "white" },
+  editProfileButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  editForm: {
+    marginTop: 20,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: "#2C3E50",
+    marginBottom: 5,
+  },
+  picker: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7E9",
+  },
+  input: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7E9",
+    padding: 10,
+    fontSize: 16,
+  },
+  checkboxContainer: {
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    margin: 0,
+    padding: 0,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: "#2C3E50",
+  },
+  saveButton: {
+    backgroundColor: "#28a745",
+    borderRadius: 8,
+    padding: 15,
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  saveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default TeacherProfile;
