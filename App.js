@@ -20,9 +20,9 @@ import Teacherslot from "./screens/Teacherslot";
 import TeachersNotes from "./components/Teachers/teachersNotes";
 
 // Student Import Here
-import StudentAssignment from "./screens/StudentAssignment";
-import StudentAttendance from "./screens/StudentAttendence";
-import StudentNotes from "./screens/StudentNotes";
+import StudentAssignment from "./screens/studentAssignment";
+import StudentAttendance from "./screens/studentAttendence";
+import StudentNotes from "./screens/studentNotes";
 
 const Stack = createStackNavigator();
 

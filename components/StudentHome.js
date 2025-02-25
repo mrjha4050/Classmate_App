@@ -56,7 +56,6 @@ const HomeScreen = () => {
           studentId: studentId,
         });
       } else {
-        // If no student details found, set only user data
         setUser({
           name: userName,
           userId: userId,
@@ -78,7 +77,7 @@ const HomeScreen = () => {
         ...doc.data(),
       }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setNotices(noticesList.slice(0, 3)); // Show only the 3 most recent notices
+      setNotices(noticesList.slice(0, 3)); 
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
@@ -109,13 +108,13 @@ const HomeScreen = () => {
           <MaterialIcons name="person" size={29} color="black" />
         </TouchableOpacity>
       </View>
-      {/* <Text style={styles.subHeader}>
+      <Text style={styles.subHeader}>
         {user
-          ? `User ID: ${user.userId} || Class - ${
+          ? `Class - ${
               user.course || "N/A"
             } || Roll No - ${user.rollNumber || "N/A"}`
           : "Fetching details..."}
-      </Text> */}
+      </Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
