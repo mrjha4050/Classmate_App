@@ -8,7 +8,7 @@ import {
   getDocs,
   query,
   where,
-} from "firebase/firestore"; // Added getDocs and query for fetching attendance
+} from "firebase/firestore"; 
 import { getAuth } from "firebase/auth";
 
 export default function StudentAttendance({ navigation }) {
@@ -18,7 +18,6 @@ export default function StudentAttendance({ navigation }) {
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
-        // Fetch user data from "users" to get the name and studentId
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -27,9 +26,9 @@ export default function StudentAttendance({ navigation }) {
           return;
         }
 
-        const userName = userDocSnap.data().name; // Get name from "users" collection
-        console.log("User Name from 'users':", userName); // Debug log for userName
-        const studentId = userDocSnap.data().studentId || auth.currentUser.uid; // Fallback to userId if studentId not present
+        const userName = userDocSnap.data().name;  
+        console.log("User Name from 'users':", userName); 
+        const studentId = userDocSnap.data().studentId || auth.currentUser.uid;  
         console.log("Student ID:", studentId); // Debug log for studentId
 
         // Fetch student data from "students" collection
@@ -41,7 +40,7 @@ export default function StudentAttendance({ navigation }) {
           // Fetch attendance data from "studentAttendance" collection based on name
           const attendanceQuery = query(
             collection(db, "studentAttendance"),
-            where("name", "==", userName.toLowerCase().trim()) // Normalize name: lowercase and trim spaces
+            where("name", "==", userName)
           );
           const attendanceSnapshot = await getDocs(attendanceQuery);
 
@@ -70,7 +69,7 @@ export default function StudentAttendance({ navigation }) {
             year: "N/A",
             division: "N/A",
             overallAttendance: "0%",
-            subjects: [], // Empty if no data
+            subjects: [], 
           });
         }
       } catch (error) {
@@ -81,7 +80,7 @@ export default function StudentAttendance({ navigation }) {
           year: "N/A",
           division: "N/A",
           overallAttendance: "0%",
-          subjects: [], // Empty if error
+          subjects: [],  
         });
       }
     };
@@ -105,7 +104,7 @@ export default function StudentAttendance({ navigation }) {
     // Process each attendance record
     attendanceRecords.forEach((record) => {
       const subject = record.subject || "Unknown";
-      const status = record.status || "A"; // Default to "A" (Absent) if status is missing, as per screenshot ("P" for Present, "A" for Absent)
+      const status = record.status || "A"; 
 
       if (!subjectTotals[subject]) {
         subjectTotals[subject] = { present: 0, total: 0 };
@@ -140,7 +139,7 @@ export default function StudentAttendance({ navigation }) {
 
     return {
       overall: overallPercentage,
-      subjects: subjectAttendance, // Return only the calculated subjects
+      subjects: subjectAttendance,
     };
   };
 
