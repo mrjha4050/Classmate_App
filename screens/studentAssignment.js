@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "../../config";
+import { db } from "../config";
 
 const StudentAssignment = ({ navigation }) => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       setLoading(true);
       getAssignments();
     });
@@ -20,9 +26,9 @@ const StudentAssignment = ({ navigation }) => {
     const assignmentCollectionRef = collection(db, "assignments");
     const assignmentDocs = await getDocs(assignmentCollectionRef);
 
-    const allAssignments = assignmentDocs.docs.map(doc => ({
+    const allAssignments = assignmentDocs.docs.map((doc) => ({
       ...doc.data(),
-      id: doc.id
+      id: doc.id,
     }));
 
     setAssignments(allAssignments);
@@ -47,7 +53,7 @@ const StudentAssignment = ({ navigation }) => {
         <FlatList
           data={assignments}
           renderItem={renderAssignment}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
         />
       )}
     </View>

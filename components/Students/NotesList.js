@@ -1,19 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { doc, getDoc, collection, getDocs, collectionGroup, where } from "firebase/firestore";
-import { Linking } from 'react-native';
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  collectionGroup,
+  where,
+} from "firebase/firestore";
+import { Linking } from "react-native";
 
 const NotesList = ({ subject }) => {
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
     const unsubscribe = firestore()
-      .collection('subjects')
+      .collection("subjects")
       .doc(subject)
       .onSnapshot((doc) => {
         if (doc.exists) {
           setNotes(doc.data().notes || []);
-        } 
+        }
       });
 
     return () => unsubscribe();
@@ -28,7 +35,7 @@ const NotesList = ({ subject }) => {
           <View>
             <Text>{item.title}</Text>
             <TouchableOpacity onPress={() => Linking.openURL(item.fileUrl)}>
-              <Text style={{ color: 'blue' }}>Download</Text>
+              <Text style={{ color: "blue" }}>Download</Text>
             </TouchableOpacity>
           </View>
         )}

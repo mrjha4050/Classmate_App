@@ -24,6 +24,7 @@ const HomeScreen = () => {
 
   const fetchUserAndStudentDetails = async () => {
     try {
+      // Fetch user data from "users" collection using the authenticated user's ID
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -32,20 +33,35 @@ const HomeScreen = () => {
         return;
       }
 
+      // Get user name and user ID
+      const userName = userDocSnap.data().name;
+      const userId = userDocSnap.id; // The document ID is the user ID
+
+      // Fetch student details using studentId (if available, otherwise use user ID)
       const studentId = userDocSnap.data().studentId || auth.currentUser.uid;
-      const studentDocRef = doc(db, "studentinfo", studentId);
+      const studentDocRef = doc(db, "students", studentId); // Using "students" collection as shown in screenshot
       const studentDocSnap = await getDoc(studentDocRef);
 
       if (studentDocSnap.exists()) {
         const studentDetails = studentDocSnap.data();
+        // Combine user and student data
         setUser({
-          ...userDocSnap.data(),
-          rollNumber: studentDetails.rollNumber,
+          name: userName,
+          userId: userId,
+          rollNumber: studentDetails.rollNo,
           course: studentDetails.course,
           year: studentDetails.year,
+          division: studentDetails.division,
+          phoneNumber: studentDetails.phonenumber,
+          studentId: studentId,
         });
       } else {
-        Alert.alert("Error", "Student details not found!");
+        // If no student details found, set only user data
+        setUser({
+          name: userName,
+          userId: userId,
+        });
+        Alert.alert("Warning", "Student details not found!");
       }
     } catch (error) {
       console.error("Error fetching user and student data:", error);
@@ -62,7 +78,7 @@ const HomeScreen = () => {
         ...doc.data(),
       }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setNotices(noticesList.slice(0, 3));
+      setNotices(noticesList.slice(0, 3)); // Show only the 3 most recent notices
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
@@ -93,11 +109,13 @@ const HomeScreen = () => {
           <MaterialIcons name="person" size={29} color="black" />
         </TouchableOpacity>
       </View>
-      <Text style={styles.subHeader}>
+      {/* <Text style={styles.subHeader}>
         {user
-          ? `Class - ${user.course} || Roll No - ${user.rollNumber}`
+          ? `User ID: ${user.userId} || Class - ${
+              user.course || "N/A"
+            } || Roll No - ${user.rollNumber || "N/A"}`
           : "Fetching details..."}
-      </Text>
+      </Text> */}
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
@@ -139,6 +157,12 @@ const HomeScreen = () => {
               onPress={() => navigation.navigate("ViewTimeTable")}
             >
               <Text style={styles.quickLinkText}>TimeTable</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickLinkButton}
+              onPress={() => navigation.navigate("StudentAssignment")}
+            >
+              <Text style={styles.quickLinkText}>Attendance</Text>
             </TouchableOpacity>
           </View>
         </View>

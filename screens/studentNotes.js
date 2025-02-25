@@ -18,16 +18,16 @@ const StudentNotes = () => {
   const user = auth.currentUser;
 
   useEffect(() => {
-    const unsubscribe = getDocs(collection(db, "studentinfo", user.uid, "notes")).then(
-      (snapshot) => {
-        const notesList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setNotes(notesList);
-        setLoading(false);
-      }
-    );
+    const unsubscribe = getDocs(
+      collection(db, "studentinfo", user.uid, "notes")
+    ).then((snapshot) => {
+      const notesList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setNotes(notesList);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, [user]);
