@@ -77,7 +77,7 @@ const HomeScreen = () => {
         ...doc.data(),
       }));
       noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setNotices(noticesList.slice(0, 3)); 
+      setNotices(noticesList.slice(0, 3));
     } catch (error) {
       console.error("Error fetching notices:", error);
       Alert.alert("Error", "Error fetching notices");
@@ -110,9 +110,9 @@ const HomeScreen = () => {
       </View>
       <Text style={styles.subHeader}>
         {user
-          ? `Class - ${
-              user.course || "N/A"
-            } || Roll No - ${user.rollNumber || "N/A"}`
+          ? `Class - ${user.course || "N/A"} || Roll No - ${
+              user.rollNumber || "N/A"
+            }`
           : "Fetching details..."}
       </Text>
 
@@ -160,9 +160,9 @@ const HomeScreen = () => {
 
             <TouchableOpacity
               style={styles.quickLinkButton}
-              onPress={() => navigation.navigate("StudentAssignment")}
+              onPress={() => navigation.navigate("StudentAttendance")}
             >
-              <Text style={styles.quickLinkText}>Assignment</Text>
+              <Text style={styles.quickLinkText}>Attendance</Text>
             </TouchableOpacity>
           </View>
         </View>
