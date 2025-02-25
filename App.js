@@ -2,6 +2,7 @@ import React from "react";
 import "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+import { AuthProvider } from "./AuthContext";
 import SignInScreen from "./components/start";
 import LoginScreen from "./components/login";
 import HomeScreen from "./components/StudentHome";
@@ -13,12 +14,10 @@ import AttendanceScreen from "./screens/AttendanceScreen";
 import TeacherProfile from "./screens/TeacherProfileScreen";
 import TodaysLectures from "./components/Teachers/TodayLecture";
 import TeacherHomeScreen from "./screens/TeacherHomeScreen";
-import { AuthProvider } from "./AuthContext";
 import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
-import TeacherNotes from "./screens/TeachersNotes";
-import NotesList from "./components/Teachers/NotesList";
+import TeachersNotes from "./components/Teachers/teachersNotes";
 
 const Stack = createStackNavigator();
 
@@ -33,7 +32,6 @@ export default function App() {
             component={LoginScreen}
             options={{ headerShown: false }}
           />
-          {/* <Stack.Screen name="Signupscreen" component={SignupScreen} /> */}
           <Stack.Screen
             name="Home"
             component={HomeScreen}
@@ -51,7 +49,6 @@ export default function App() {
             name="CreateNoticeScreen"
             component={CreateNoticeScreen}
           />
-
           <Stack.Screen name="NoticeDetail" component={NoticeDetail} />
           <Stack.Screen
             name="TeacherHomeScreen"
@@ -63,7 +60,6 @@ export default function App() {
             component={TodaysLectures}
             options={{ headerShown: false }}
           />
-
           <Stack.Screen
             name="TeacherProfile"
             component={TeacherProfile}
@@ -74,7 +70,7 @@ export default function App() {
             component={CreateTimetableScreen}
           />
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
-          <Stack.Screen name="NotesList" component={NotesList} />
+          <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

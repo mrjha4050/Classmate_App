@@ -12,7 +12,7 @@ const ViewTimetableScreen = ({ navigation }) => {
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState("Third Year");
-
+  
   useEffect(() => {
     fetchTimetable();
   }, [selectedYear, selectedDay]);

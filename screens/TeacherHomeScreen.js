@@ -51,7 +51,6 @@ const TeacherHomeScreen = () => {
         const userData = userDocSnap.data();
         setUser(userData);
 
-        // Fetch teacher details from the 'teachersinfo' collection
         const teacherInfoRef = doc(db, "teachersinfo", auth.currentUser.uid);
         const teacherInfoSnap = await getDoc(teacherInfoRef);
 
@@ -239,7 +238,7 @@ const TeacherHomeScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("NotesList")}>
+          <TouchableOpacity onPress={() => navigation.navigate("TeachersNotes")}>
             <View style={styles.card}>
               <Text style={styles.cardText}>View Notes</Text>
             </View>
@@ -248,9 +247,9 @@ const TeacherHomeScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Hello</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("NotesList")}>
+          <TouchableOpacity onPress={() => navigation.navigate("/")}>
             <View style={styles.card}>
-              <Text style={styles.cardText}>View Notes</Text>
+              <Text style={styles.cardText}>tesing</Text>
             </View>
           </TouchableOpacity>
         </View>
