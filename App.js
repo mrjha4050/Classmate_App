@@ -19,6 +19,12 @@ import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
 import TeachersNotes from "./components/Teachers/teachersNotes";
 
+
+// Student Import Here
+import StudentAssignment from "./screens/studentAssignment";
+import StudentAttendance from "./screens/studentAttendence";
+import StudentNotes from "./screens/studentNotes";
+
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -33,8 +39,8 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Home"
-            component={HomeScreen}
+            name="Home"  
+            component={HomeScreen}          // student home Screen
             options={{ headerShown: false }}
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
@@ -71,6 +77,18 @@ export default function App() {
           />
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
+
+
+{/* Student Screen Routes  */}
+          <Stack.Screen name="StudentAssignment" component={StudentAssignment} />
+          <Stack.Screen name="StudentAttendance" component={StudentAttendance} />
+          <Stack.Screen name="StudentNotes" component={StudentNotes} />
+
+
+
+
+
+
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
