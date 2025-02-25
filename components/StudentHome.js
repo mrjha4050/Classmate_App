@@ -157,11 +157,12 @@ const HomeScreen = () => {
             >
               <Text style={styles.quickLinkText}>TimeTable</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.quickLinkButton}
               onPress={() => navigation.navigate("StudentAssignment")}
             >
-              <Text style={styles.quickLinkText}>Attendance</Text>
+              <Text style={styles.quickLinkText}>Assignment</Text>
             </TouchableOpacity>
           </View>
         </View>
