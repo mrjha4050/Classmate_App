@@ -8,7 +8,7 @@ import {
   getDocs,
   query,
   where,
-} from "firebase/firestore"; 
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 export default function StudentAttendance({ navigation }) {
@@ -18,17 +18,24 @@ export default function StudentAttendance({ navigation }) {
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
+        // Fetch user data from "users" to get the name and studentId
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (!userDocSnap.exists()) {
           setStudentData({ name: "Unknown User" });
+          console.log(
+            "User document does not exist for UID:",
+            auth.currentUser.uid
+          );
           return;
         }
 
-        const userName = userDocSnap.data().name;  
-        console.log("User Name from 'users':", userName); 
-        const studentId = userDocSnap.data().studentId || auth.currentUser.uid;  
+        const userName = userDocSnap.data().name; // Get name from "users" collection
+        console.log("User Name from 'users' (raw):", userName); // Debug raw name
+        const normalizedUserName = userName.toLowerCase().trim(); // Normalize name: lowercase and trim spaces
+        console.log("Normalized User Name for Query:", normalizedUserName); // Debug normalized name
+        const studentId = userDocSnap.data().studentId || auth.currentUser.uid; // Fallback to userId if studentId not present
         console.log("Student ID:", studentId); // Debug log for studentId
 
         // Fetch student data from "students" collection
@@ -37,39 +44,66 @@ export default function StudentAttendance({ navigation }) {
 
         if (studentDocSnap.exists()) {
           const studentData = studentDocSnap.data();
+          const userCourse = studentData.course || "N/A"; // Get the user's course (e.g., "Bsc.IT")
+
+          // Fetch subjects data from "subjects" collection based on the user's course
+          const subjectsQuery = query(
+            collection(db, "subjects"), // Assuming "subjects" is the collection name
+            where("course", "==", userCourse) // Filter subjects by the user's course
+          );
+          const subjectsSnapshot = await getDocs(subjectsQuery);
+
+          const subjectsData = subjectsSnapshot.docs.map(
+            (doc) => doc.data().name || "Unknown Subject"
+          ); // Assuming each subject document has a "name" field
+
           // Fetch attendance data from "studentAttendance" collection based on name
           const attendanceQuery = query(
             collection(db, "studentAttendance"),
-            where("name", "==", userName)
+            where("name", "==", normalizedUserName) // Use normalized name for query
           );
           const attendanceSnapshot = await getDocs(attendanceQuery);
 
           console.log(
-            "Attendance Query Results:",
-            attendanceSnapshot.docs.map((doc) => doc.data())
-          ); // Debug log for attendance data
+            "Attendance Query Results (Count):",
+            attendanceSnapshot.size
+          ); // Log number of results
+          console.log(
+            "Attendance Query Results (Data):",
+            attendanceSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              data: doc.data(),
+            }))
+          ); // Log detailed attendance data
 
           const attendanceRecords = attendanceSnapshot.docs.map((doc) =>
             doc.data()
           );
-          const subjectAttendance = calculateAttendance(attendanceRecords);
+          const subjectAttendance = calculateAttendance(
+            attendanceRecords,
+            subjectsData
+          );
 
           setStudentData({
             name: userName,
-            course: studentData.course || "N/A",
+            course: userCourse,
             year: studentData.year || "N/A",
             division: studentData.division || "N/A",
             overallAttendance: subjectAttendance.overall || "0%", // Calculated overall attendance
             subjects: subjectAttendance.subjects || [], // Dynamic subject-wise attendance, no defaults
           });
         } else {
+          console.log(
+            "Student document does not exist for Student ID:",
+            studentId
+          );
           setStudentData({
             name: userName,
             course: "N/A",
             year: "N/A",
             division: "N/A",
             overallAttendance: "0%",
-            subjects: [], 
+            subjects: [], // Empty if no data
           });
         }
       } catch (error) {
@@ -80,7 +114,7 @@ export default function StudentAttendance({ navigation }) {
           year: "N/A",
           division: "N/A",
           overallAttendance: "0%",
-          subjects: [],  
+          subjects: [], // Empty if error
         });
       }
     };
@@ -89,11 +123,16 @@ export default function StudentAttendance({ navigation }) {
   }, [auth]);
 
   // Function to calculate overall and subject-wise attendance percentages
-  const calculateAttendance = (attendanceRecords) => {
+  const calculateAttendance = (attendanceRecords, availableSubjects) => {
     if (!attendanceRecords || attendanceRecords.length === 0) {
+      // If no attendance records, use available subjects with 0% attendance
       return {
         overall: "0%",
-        subjects: [], // Return empty array if no records
+        subjects:
+          availableSubjects.map((subject) => ({
+            name: subject,
+            attendance: "0%",
+          })) || [],
       };
     }
 
@@ -104,7 +143,7 @@ export default function StudentAttendance({ navigation }) {
     // Process each attendance record
     attendanceRecords.forEach((record) => {
       const subject = record.subject || "Unknown";
-      const status = record.status || "A"; 
+      const status = record.status || "A"; // Default to "A" (Absent) if status is missing, as per screenshot ("P" for Present, "A" for Absent)
 
       if (!subjectTotals[subject]) {
         subjectTotals[subject] = { present: 0, total: 0 };
@@ -126,20 +165,21 @@ export default function StudentAttendance({ navigation }) {
         ? Math.round((attendedClasses / totalClasses) * 100) + "%"
         : "0%";
 
-    // Calculate subject-wise attendance
-    const subjectAttendance = Object.entries(subjectTotals).map(
-      ([subject, stats]) => ({
+    // Calculate subject-wise attendance, ensuring all available subjects are included
+    const subjectAttendance = availableSubjects.map((subject) => {
+      const stats = subjectTotals[subject] || { present: 0, total: 0 };
+      return {
         name: subject,
         attendance:
           stats.total > 0
             ? Math.round((stats.present / stats.total) * 100) + "%"
             : "0%",
-      })
-    );
+      };
+    });
 
     return {
       overall: overallPercentage,
-      subjects: subjectAttendance,
+      subjects: subjectAttendance, // Return subjects based on the user's course, with calculated or default attendance
     };
   };
 

@@ -18,6 +18,7 @@ import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
 import TeachersNotes from "./components/Teachers/teachersNotes";
+import AddNotes from "./screens/Addnotes";
 
 // Student Import Here
 import StudentAssignment from "./screens/StudentAssignment";
@@ -60,6 +61,9 @@ export default function App() {
             component={TeacherHomeScreen}
             options={{ headerShown: false }}
           />
+
+          <Stack.Screen name="AddNotes" component={AddNotes} />
+
           <Stack.Screen
             name="TodaysLectures"
             component={TodaysLectures}

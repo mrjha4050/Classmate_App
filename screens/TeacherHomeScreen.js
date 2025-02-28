@@ -238,11 +238,35 @@ const TeacherHomeScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("TeachersNotes")}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("TeachersNotes")}
+          >
             <View style={styles.card}>
               <Text style={styles.cardText}>View Notes</Text>
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* New Quick Links Section for Assignments and Notes */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Links</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("AssignmentsScreen")}
+              style={styles.quickLink}
+            >
+              <MaterialIcons name="assignment" size={20} color="#2E86C1" />
+              <Text style={styles.quickLinkText}>Assignments</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate("NotesScreen")}
+              style={styles.quickLink}
+            >
+              <MaterialIcons name="note" size={20} color="#2E86C1" />
+              <Text style={styles.quickLinkText}>Notes</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -255,6 +279,7 @@ const TeacherHomeScreen = () => {
         </View>
       </ScrollView>
 
+      {/* Updated Floating Menu (removed Assignments and Notes) */}
       <View style={styles.floatingMenu}>
         <TouchableOpacity
           style={styles.menuButton}
@@ -282,7 +307,7 @@ const TeacherHomeScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => navigation.navigate("CreateNoticeScreen")}
+          onPress={() => navigation.navigate("SettingsScreen")}
         >
           <MaterialIcons name="settings" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -372,6 +397,16 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: 10,
+  },
+  quickLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  quickLinkText: {
+    fontSize: 16,
+    color: "#2C3E50",
+    marginLeft: 10,
   },
 });
 
