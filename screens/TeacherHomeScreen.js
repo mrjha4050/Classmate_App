@@ -252,7 +252,7 @@ const TeacherHomeScreen = () => {
           <Text style={styles.sectionTitle}>Quick Links</Text>
           <View style={styles.card}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("AssignmentsScreen")}
+              onPress={() => navigation.navigate("Assignments")}
               style={styles.quickLink}
             >
               <MaterialIcons name="assignment" size={20} color="#2E86C1" />

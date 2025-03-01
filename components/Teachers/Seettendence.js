@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,38 +7,36 @@ import {
   FlatList,
   StyleSheet,
   SafeAreaView,
-  ScrollView,
   ActivityIndicator,
   Alert,
   Modal,
+  Dimensions,
+  ScrollView,
+  Platform,
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../config"; // Import Firestore instance
-import { Dimensions } from "react-native"; // For screen dimensions
-import { useNavigation } from "@react-navigation/native"; // For navigation
-import {
-  VictoryBar,
-  VictoryPie,
-  VictoryChart,
-  VictoryAxis,
-  VictoryTheme,
-} from "victory-native";
+import { db } from "../../config";
+import { useNavigation } from "@react-navigation/native";
+import { BarChart, PieChart } from "react-native-chart-kit";
 
 import { COURSES } from "../constant";
+
 const SeeAttendance = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterOption, setFilterOption] = useState("All"); // State to toggle between "All" and "Defaulters"
+  const [filterOption, setFilterOption] = useState("All");
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [overallAttendanceByStudent, setOverallAttendanceByStudent] = useState(
-    {}
-  );
-  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
+  const [overallAttendanceByStudent, setOverallAttendanceByStudent] = useState({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [selectedCourses, setSelectedCourses] = useState([]);
 
-  const navigation = useNavigation(); // Use navigation hook
-  const screenWidth = Dimensions.get("window").width; // Get screen width for charts
+  const navigation = useNavigation();
+  const { width: screenWidth } = Dimensions.get("window");
 
-  // Fetch attendance data from Firestore
+  const years = ["First Year", "Second Year", "Third Year"];
+  const courses = ["Bsc.IT", "B.COM", "BMS", "BFM"];
+
   const fetchAttendanceData = useCallback(async () => {
     setIsLoading(true);
     setAttendanceRecords([]);
@@ -49,24 +47,34 @@ const SeeAttendance = () => {
       const querySnapshot = await getDocs(attendanceRef);
 
       const allRecords = [];
-      const studentStats = {};
-
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.attendance) {
           data.attendance.forEach((record) => {
-            allRecords.push(record);
-            const studentName = record.name.trim().toLowerCase();
-            if (!studentStats[studentName]) {
-              studentStats[studentName] = { present: 0, total: 0 };
+            // Client-side filtering based on year and course
+            if (
+              (selectedYears.length === 0 || selectedYears.includes(record.year)) &&
+              (selectedCourses.length === 0 || selectedCourses.includes(record.course))
+            ) {
+              allRecords.push(record);
             }
-            studentStats[studentName].total += 1;
-            if (record.status === "P") studentStats[studentName].present += 1;
           });
         }
       });
 
       setAttendanceRecords(allRecords);
+
+      // Calculate student-wise attendance stats
+      const studentStats = {};
+      allRecords.forEach((record) => {
+        const studentName = record.name.trim().toLowerCase();
+        if (!studentStats[studentName]) {
+          studentStats[studentName] = { present: 0, total: 0 };
+        }
+        studentStats[studentName].total += 1;
+        if (record.status === "P") studentStats[studentName].present += 1;
+      });
+
       setOverallAttendanceByStudent(
         Object.fromEntries(
           Object.entries(studentStats).map(([name, { present, total }]) => [
@@ -81,18 +89,15 @@ const SeeAttendance = () => {
       );
     } catch (error) {
       console.error("Error fetching attendance records:", error);
-      Alert.alert(
-        "Error",
-        "Failed to fetch attendance records. Please try again."
-      );
+      Alert.alert("Error", "Failed to fetch attendance records. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedYears, selectedCourses]);
 
   useEffect(() => {
     fetchAttendanceData();
-  }, [fetchAttendanceData]);
+  }, [fetchAttendanceData, selectedYears, selectedCourses]);
 
   const filteredRecords = searchQuery.trim()
     ? attendanceRecords.filter(
@@ -122,257 +127,314 @@ const SeeAttendance = () => {
     { present: 0, total: 0 }
   );
 
-  // Filter students based on the filterOption
   const filteredStudents =
     filterOption === "Defaulters"
       ? Object.entries(overallAttendanceByStudent).filter(
-          ([, { percentage }]) => percentage < 40 // Show students with less than 40% attendance
+          ([, { percentage }]) => percentage < 40
         )
-      : Object.entries(overallAttendanceByStudent); // Show all students
+      : Object.entries(overallAttendanceByStudent);
 
-  // Chart data for subject-wise attendance (Bar Chart) with Victory
-  const subjectChartData = Object.entries(groupedBySubject).map(
-    ([subject, { present, total }]) => ({
-      x: subject,
-      y: total > 0 ? Math.round((present / total) * 100) : 0,
-    })
-  );
+  // Responsive chart data
+  const subjectChartData = {
+    labels: Object.keys(groupedBySubject).map((label) =>
+      label.length > 5 ? `${label.slice(0, 5)}...` : label
+    ), // Truncate long labels
+    datasets: [
+      {
+        data: Object.values(groupedBySubject).map(({ present, total }) =>
+          total > 0 ? Math.round((present / total) * 100) : 0
+        ),
+      },
+    ],
+  };
 
-  // Chart data for overall attendance (Pie Chart) with Victory
-  const overallChartData = [
-    { x: "Present", y: overallStats.present },
-    { x: "Absent", y: overallStats.total - overallStats.present },
+  const pieChartData = [
+    {
+      name: "Present",
+      population: overallStats.present,
+      color: "#75C9C9",
+      legendFontColor: "#333",
+      legendFontSize: 12,
+    },
+    {
+      name: "Absent",
+      population: overallStats.total - overallStats.present,
+      color: "#FF6384",
+      legendFontColor: "#333",
+      legendFontSize: 12,
+    },
   ];
 
   const chartConfig = {
-    backgroundColor: "#fff",
-    color: "#75C9C9", // Light blue for bars/pie slices
-    labelColor: "#000", // Black for labels
+    backgroundGradientFrom: "#fff",
+    backgroundGradientTo: "#fff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(46, 134, 193, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForLabels: {
+      fontSize: 10, // Reduce font size for better fit
+    },
   };
 
-  const handleMarkAttendance = () => {
-    navigation.navigate("AttendanceScreen"); // Navigate to AttendanceScreen
+  const toggleYear = (year) => {
+    setSelectedYears((prev) =>
+      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year]
+    );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
-        {/* Header with Title and Mark Attendance Button */}
-        <View style={styles.header}>
-          <Text style={styles.title}>SEE ATTENDANCE</Text>
-          <TouchableOpacity
-            style={styles.markAttendanceButton}
-            onPress={handleMarkAttendance}
-          >
-            <Text style={styles.markAttendanceButtonText}>Mark Attendance</Text>
-          </TouchableOpacity>
-        </View>
+  const toggleCourse = (course) => {
+    setSelectedCourses((prev) =>
+      prev.includes(course) ? prev.filter((c) => c !== course) : [...prev, course]
+    );
+  };
 
-        {/* Filter and Search Bar */}
-        <View style={styles.filterContainer}>
-          <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() =>
-                setFilterOption(filterOption === "All" ? "Defaulters" : "All")
-              }
-            >
-              <Text style={styles.filterButtonText}>
-                {filterOption === "All" ? "All" : "Defaulters"}
-              </Text>
-            </TouchableOpacity>
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Enter student name"
-              keyboardType="default"
-            />
-          </View>
-        </View>
-
-        {/* Attendance Data */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2E86C1" />
-          </View>
-        ) : searchQuery.trim() ? (
-          attendanceRecords.length > 0 && filteredRecords.length > 0 ? (
-            <View style={styles.attendanceCard}>
-              <Text style={styles.sectionTitle}>
-                Attendance for {searchQuery}
-              </Text>
-              <View style={styles.statsRow}>
-                <Text style={styles.overallStats}>
-                  Overall:{" "}
-                  {overallStats.total > 0
-                    ? Math.round(
-                        (overallStats.present / overallStats.total) * 100
-                      )
-                    : 0}
-                  % ({overallStats.present}/{overallStats.total})
-                </Text>
-                <TouchableOpacity
-                  style={styles.chartButton}
-                  onPress={() => setIsModalOpen(true)}
+  const renderContent = () => (
+    <View style={styles.content}>
+      <View style={styles.filterContainer}>
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Filter by Year:</Text>
+          <View style={styles.filterOptions}>
+            {years.map((year) => (
+              <TouchableOpacity
+                key={year}
+                style={[
+                  styles.filterButton,
+                  selectedYears.includes(year) && styles.selectedFilterButton,
+                ]}
+                onPress={() => toggleYear(year)}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    selectedYears.includes(year) && styles.selectedFilterText,
+                  ]}
                 >
-                  <Text style={styles.chartButtonText}>Show Charts</Text>
-                </TouchableOpacity>
-              </View>
+                  {year}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Filter by Course:</Text>
+          <View style={styles.filterOptions}>
+            {courses.map((course) => (
+              <TouchableOpacity
+                key={course}
+                style={[
+                  styles.filterButton,
+                  selectedCourses.includes(course) && styles.selectedFilterButton,
+                ]}
+                onPress={() => toggleCourse(course)}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    selectedCourses.includes(course) && styles.selectedFilterText,
+                  ]}
+                >
+                  {course}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() =>
+              setFilterOption(filterOption === "All" ? "Defaulters" : "All")
+            }
+          >
+            <Text style={styles.filterButtonText}>
+              {filterOption === "All" ? "All" : "Defaulters"}
+            </Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Enter student name"
+            keyboardType="default"
+          />
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E86C1" />
+        </View>
+      ) : searchQuery.trim() ? (
+        attendanceRecords.length > 0 && filteredRecords.length > 0 ? (
+          <View style={styles.attendanceCard}>
+            <Text style={styles.sectionTitle}>Attendance for {searchQuery}</Text>
+            <View style={styles.statsRow}>
+              <Text style={styles.overallStats}>
+                Overall:{" "}
+                {overallStats.total > 0
+                  ? Math.round((overallStats.present / overallStats.total) * 100)
+                  : 0}
+                % ({overallStats.present}/{overallStats.total})
+              </Text>
+              <TouchableOpacity
+                style={styles.chartButton}
+                onPress={() => setIsModalOpen(true)}
+              >
+                <Text style={styles.chartButtonText}>Show Charts</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={filteredRecords}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.recordRow}>
+                  <Text style={styles.cell}>{item.subject}</Text>
+                  <Text style={styles.cell}>{item.date}</Text>
+                  <Text style={styles.cell}>
+                    {item.status === "P" ? "Present" : "Absent"}
+                  </Text>
+                </View>
+              )}
+              ListHeaderComponent={
+                <View style={styles.tableHeader}>
+                  <Text style={styles.headerCell}>Subject</Text>
+                  <Text style={styles.headerCell}>Date</Text>
+                  <Text style={styles.headerCell}>Status</Text>
+                </View>
+              }
+              nestedScrollEnabled
+            />
+            <View style={styles.summarySection}>
+              <Text style={styles.subSectionTitle}>Subject-wise Summary</Text>
               <FlatList
-                data={filteredRecords}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <View style={styles.recordRow}>
-                    <Text style={styles.cell}>{item.subject}</Text>
-                    <Text style={styles.cell}>{item.date}</Text>
+                data={Object.entries(groupedBySubject)}
+                keyExtractor={([subject]) => subject}
+                renderItem={({ item: [subject, { present, total }] }) => (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.cell}>{subject}</Text>
                     <Text style={styles.cell}>
-                      {item.status === "P" ? "Present" : "Absent"}
+                      {Math.round((present / total) * 100)}%
+                    </Text>
+                    <Text style={styles.cell}>
+                      {present}/{total}
                     </Text>
                   </View>
                 )}
                 ListHeaderComponent={
                   <View style={styles.tableHeader}>
                     <Text style={styles.headerCell}>Subject</Text>
-                    <Text style={styles.headerCell}>Date</Text>
-                    <Text style={styles.headerCell}>Status</Text>
+                    <Text style={styles.headerCell}>%</Text>
+                    <Text style={styles.headerCell}>Present/Total</Text>
                   </View>
                 }
+                nestedScrollEnabled
               />
-              <View style={styles.summarySection}>
-                <Text style={styles.subSectionTitle}>Subject-wise Summary</Text>
-                <FlatList
-                  data={Object.entries(groupedBySubject)}
-                  keyExtractor={([subject]) => subject}
-                  renderItem={({ item: [subject, { present, total }] }) => (
-                    <View style={styles.summaryRow}>
-                      <Text style={styles.cell}>{subject}</Text>
-                      <Text style={styles.cell}>
-                        {Math.round((present / total) * 100)}%
-                      </Text>
-                      <Text style={styles.cell}>
-                        {present}/{total}
-                      </Text>
-                    </View>
-                  )}
-                  ListHeaderComponent={
-                    <View style={styles.tableHeader}>
-                      <Text style={styles.headerCell}>Subject</Text>
-                      <Text style={styles.headerCell}>%</Text>
-                      <Text style={styles.headerCell}>Present/Total</Text>
-                    </View>
-                  }
-                />
-              </View>
             </View>
-          ) : (
-            <View style={styles.noDataCard}>
-              <Text style={styles.noDataText}>
-                No attendance records found for {searchQuery}.
-              </Text>
-            </View>
-          )
-        ) : (
-          <View style={styles.attendanceCard}>
-            <Text style={styles.sectionTitle}>
-              {filterOption === "Defaulters"
-                ? "Defaulters List"
-                : "All Students Attendance"}
-            </Text>
-            <FlatList
-              data={filteredStudents}
-              keyExtractor={([name]) => name}
-              renderItem={({
-                item: [name, { percentage, present, total }],
-              }) => (
-                <View style={styles.studentRow}>
-                  <Text style={styles.cell}>{name}</Text>
-                  <Text style={styles.cell}>{percentage}%</Text>
-                  <Text style={styles.cell}>{present}</Text>
-                  <Text style={styles.cell}>{total}</Text>
-                </View>
-              )}
-              ListHeaderComponent={
-                <View style={styles.tableHeader}>
-                  <Text style={styles.headerCell}>Student Name</Text>
-                  <Text style={styles.headerCell}>Overall %</Text>
-                  <Text style={styles.headerCell}>Present</Text>
-                  <Text style={styles.headerCell}>Total</Text>
-                </View>
-              }
-              ListEmptyComponent={
-                <Text style={styles.noDataText}>
-                  {filterOption === "Defaulters"
-                    ? "No defaulters found."
-                    : "No attendance records available."}
-                </Text>
-              }
-            />
           </View>
-        )}
-
-        {/* Modal for Charts */}
-        <Modal
-          visible={isModalOpen}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setIsModalOpen(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
-                Attendance Charts for {searchQuery || "All Students"}
+        ) : (
+          <View style={styles.noDataCard}>
+            <Text style={styles.noDataText}>
+              No attendance records found for {searchQuery}.
+            </Text>
+          </View>
+        )
+      ) : (
+        <View style={styles.attendanceCard}>
+          <Text style={styles.sectionTitle}>
+            {filterOption === "Defaulters" ? "Defaulters List" : "All Students Attendance"}
+          </Text>
+          <FlatList
+            data={filteredStudents}
+            keyExtractor={([name]) => name}
+            renderItem={({ item: [name, { percentage, present, total }] }) => (
+              <View style={styles.studentRow}>
+                <Text style={styles.cell}>{name}</Text>
+                <Text style={styles.cell}>{percentage}%</Text>
+                <Text style={styles.cell}>{present}</Text>
+                <Text style={styles.cell}>{total}</Text>
+              </View>
+            )}
+            ListHeaderComponent={
+              <View style={styles.tableHeader}>
+                <Text style={styles.headerCell}>Student Name</Text>
+                <Text style={styles.headerCell}>Overall %</Text>
+                <Text style={styles.headerCell}>Present</Text>
+                <Text style={styles.headerCell}>Total</Text>
+              </View>
+            }
+            ListEmptyComponent={
+              <Text style={styles.noDataText}>
+                {filterOption === "Defaulters"
+                  ? "No defaulters found."
+                  : "No attendance records available."}
               </Text>
+            }
+            nestedScrollEnabled
+          />
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={[{}]}
+        renderItem={renderContent}
+        keyExtractor={() => "content"}
+        showsVerticalScrollIndicator={false}
+      />
+      <Modal
+        visible={isModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Attendance Charts for {searchQuery || "All Students"}
+            </Text>
+            <ScrollView style={styles.chartsScrollView}>
               <View style={styles.chartsContainer}>
                 <View style={styles.chartCard}>
                   <Text style={styles.chartTitle}>Subject-wise Attendance</Text>
-                  <VictoryChart
-                    width={screenWidth * 0.9}
+                  <BarChart
+                    data={subjectChartData}
+                    width={screenWidth * 0.8} // Adjusted for responsiveness
                     height={200}
-                    theme={VictoryTheme.material}
-                  >
-                    <VictoryAxis
-                      dependentAxis
-                      style={{
-                        axis: { stroke: "#ccc" },
-                        tickLabels: { fontSize: 10, fill: "#333" },
-                      }}
-                    />
-                    <VictoryAxis
-                      style={{
-                        axis: { stroke: "#ccc" },
-                        tickLabels: { fontSize: 10, fill: "#333", angle: -45 },
-                      }}
-                    />
-                    <VictoryBar
-                      data={subjectChartData}
-                      x="x"
-                      y="y"
-                      style={{
-                        data: {
-                          fill: "#75C9C9",
-                          width: 20,
-                        },
-                        labels: { fontSize: 10, fill: "#333" },
-                      }}
-                    />
-                  </VictoryChart>
+                    yAxisLabel=""
+                    yAxisSuffix="%"
+                    chartConfig={chartConfig}
+                    fromZero={true}
+                    withInnerLines={false}
+                    flatColor={true}
+                    style={styles.chartStyle}
+                    decorator={() => null} // Remove default decorator to avoid overlap
+                    withCustomBarColorFromData={true}
+                    barPercentage={0.5} // Reduce bar width for better spacing
+                  />
                 </View>
                 <View style={styles.chartCard}>
                   <Text style={styles.chartTitle}>Overall Attendance</Text>
-                  <VictoryPie
-                    width={screenWidth * 0.9}
+                  <PieChart
+                    data={pieChartData}
+                    width={screenWidth * 0.8} // Adjusted for responsiveness
                     height={200}
-                    data={overallChartData}
-                    x="x"
-                    y="y"
-                    colorScale={["#75C9C9", "#FF6384"]}
-                    style={{
-                      labels: { fontSize: 10, fill: "#333" },
-                    }}
+                    chartConfig={chartConfig}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                    style={styles.chartStyle}
                   />
                 </View>
               </View>
+            </ScrollView>
+            <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.closeModalButton}
                 onPress={() => setIsModalOpen(false)}
@@ -381,8 +443,8 @@ const SeeAttendance = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -393,7 +455,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   content: {
-    flex: 1,
     padding: 16,
     backgroundColor: "#fff",
   },
@@ -409,7 +470,7 @@ const styles = StyleSheet.create({
     color: "#2E86C1",
   },
   markAttendanceButton: {
-    backgroundColor: "#28a745", // Green button to match attendance theme
+    backgroundColor: "#28a745",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -426,22 +487,40 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    alignItems: "center",
+    marginBottom: 10,
     flexWrap: "wrap",
+  },
+  filterOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterLabel: {
+    fontSize: 16,
+    color: "#333",
+    marginRight: 10,
   },
   filterButton: {
     backgroundColor: "#fff",
-    padding: 10,
+    padding: 8,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
-    minWidth: 100,
     alignItems: "center",
+    minWidth: 80,
+  },
+  selectedFilterButton: {
+    backgroundColor: "#2E86C1",
+    borderColor: "#2E86C1",
   },
   filterButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#333",
     fontWeight: "500",
+  },
+  selectedFilterText: {
+    color: "#fff",
   },
   searchInput: {
     flex: 1,
@@ -582,6 +661,9 @@ const styles = StyleSheet.create({
     color: "#2E86C1",
     marginBottom: 16,
   },
+  chartsScrollView: {
+    maxHeight: "60%", // Limit scrollable area to avoid covering buttons
+  },
   chartsContainer: {
     flexDirection: "column",
     gap: 16,
@@ -596,6 +678,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+    alignItems: "center",
+    width: "100%",
   },
   chartTitle: {
     fontSize: 16,
@@ -603,12 +687,22 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 8,
   },
+  chartStyle: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 16,
+  },
   closeModalButton: {
     backgroundColor: "#dc3545",
     padding: 10,
     borderRadius: 8,
-    marginTop: 16,
     alignItems: "center",
+    flex: 1,
   },
   closeModalButtonText: {
     color: "#fff",

@@ -19,11 +19,9 @@ export const AuthProvider = ({ children }) => {
 
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            // Assuming the role is stored as a field in Firestore (e.g., 'role')
             const role = userData.role || "student"; // Default to "student" if no role
             setUser({ ...authUser, role }); // Add role to the user object
           } else {
-            // If user document doesn’t exist, assume a default role or create it
             console.warn(`User document not found for UID: ${authUser.uid}`);
             setUser({ ...authUser, role: "student" }); // Default to "student" if not found
           }

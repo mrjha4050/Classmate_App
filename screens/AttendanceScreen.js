@@ -175,6 +175,8 @@ const AttendanceScreen = () => {
         rollNo: student.rollno,
         subject: lectureName,
         status: attendance[student.id] || "N/A",
+        year: student.year, // Include student's year
+        course: student.course, // Include student's course
       }));
 
       await addDoc(collection(db, "studentAttendance"), {
@@ -182,11 +184,23 @@ const AttendanceScreen = () => {
         timestamp: new Date().toISOString(),
       });
 
-      Alert.alert("Success", "Attendance saved successfully!");
-      setAttendance({}); // Reset attendance after saving
-      setLectureName(""); // Reset lecture name
-      setStartTime(""); // Reset start time
-      setEndTime(""); // Reset end time
+      // Enhanced popup for attendance saved
+      Alert.alert(
+        "Success",
+        "Attendance saved successfully!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setAttendance({}); // Reset attendance after confirmation
+              setLectureName(""); // Reset lecture name
+              setStartTime(""); // Reset start time
+              setEndTime(""); // Reset end time
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error) {
       console.error("Error saving attendance:", error.message);
       Alert.alert("Error", "Failed to save attendance. Please try again.");

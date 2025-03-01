@@ -2,7 +2,7 @@ import React from "react";
 import "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { AuthProvider } from "./AuthContext";
+import { AuthProvider } from "./AuthContext";  
 import SignInScreen from "./components/start";
 import LoginScreen from "./components/login";
 import HomeScreen from "./components/StudentHome";
@@ -19,12 +19,11 @@ import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
 import TeachersNotes from "./components/Teachers/teachersNotes";
 import AddNotes from "./screens/Addnotes";
+import Assignments from "./screens/Assignment";
 import SeeAttendance from "./components/Teachers/Seettendence";
 
-// Student Import Here
-import StudentAssignment from "./screens/studentAssignment";
-import StudentAttendance from "./screens/studentAttendence";
-import StudentNotes from "./screens/studentNotes";
+
+// Student Imports
 
 const Stack = createStackNavigator();
 
@@ -41,7 +40,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Home"
-            component={HomeScreen}  
+            component={HomeScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
@@ -63,9 +62,7 @@ export default function App() {
             component={TeacherHomeScreen}
             options={{ headerShown: false }}
           />
-
           <Stack.Screen name="AddNotes" component={AddNotes} />
-
           <Stack.Screen
             name="TodaysLectures"
             component={TodaysLectures}
@@ -82,16 +79,9 @@ export default function App() {
           />
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
-
-          <Stack.Screen
-            name="StudentAssignment"
-            component={StudentAssignment}
-          />
-          <Stack.Screen
-            name="StudentAttendance"
-            component={StudentAttendance}
-          />
-          <Stack.Screen name="StudentNotes" component={StudentNotes} />
+          <Stack.Screen name="Assignments" component={Assignments} options={{ headerShown: false }} />
+          {/* <Stack.Screen name="StudentAttendance" component={StudentAttendance} /> */}
+          {/* <Stack.Screen name="StudentNotes" component={StudentNotes} /> */}
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
