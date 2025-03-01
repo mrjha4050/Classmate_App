@@ -22,9 +22,9 @@ import AddNotes from "./screens/Addnotes";
 import SeeAttendance from "./components/Teachers/Seettendence";
 
 // Student Import Here
-import StudentAssignment from "./screens/StudentAssignment";
-import StudentAttendance from "./screens/StudentAttendence";
-import StudentNotes from "./screens/StudentNotes";
+import StudentAssignment from "./screens/studentAssignment";
+import StudentAttendance from "./screens/studentAttendence";
+import StudentNotes from "./screens/studentNotes";
 
 const Stack = createStackNavigator();
 
@@ -41,7 +41,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Home"
-            component={HomeScreen} // student home Screen
+            component={HomeScreen}  
             options={{ headerShown: false }}
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
@@ -83,7 +83,6 @@ export default function App() {
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
 
-          {/* Student Screen Routes  */}
           <Stack.Screen
             name="StudentAssignment"
             component={StudentAssignment}
