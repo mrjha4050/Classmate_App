@@ -17,13 +17,14 @@ import TeacherHomeScreen from "./screens/TeacherHomeScreen";
 import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
+
 import TeachersNotes from "./components/Teachers/teachersNotes";
 import AddNotes from "./screens/Addnotes";
 import Assignments from "./screens/Assignment";
+import CreateAssignment from "./components/Teachers/CreateAssignment";
 import SeeAttendance from "./components/Teachers/Seettendence";
 
 
-// Student Imports
 
 const Stack = createStackNavigator();
 
@@ -79,9 +80,10 @@ export default function App() {
           />
           <Stack.Screen name="Teacherslot" component={Teacherslot} />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
+          <Stack.Screen name="CreateAssignment" component={CreateAssignment} options={{ headerShown: false }} />
+
           <Stack.Screen name="Assignments" component={Assignments} options={{ headerShown: false }} />
-          {/* <Stack.Screen name="StudentAttendance" component={StudentAttendance} /> */}
-          {/* <Stack.Screen name="StudentNotes" component={StudentNotes} /> */}
+
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

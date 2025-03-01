@@ -12,8 +12,8 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { collection, query, where, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../config"; // Added auth import
+import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
+import { auth, db } from "../config";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import supabase from "../services/supabaseclient";
@@ -26,26 +26,30 @@ const Assignments = () => {
   const [error, setError] = useState("");
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [filter, setFilter] = useState("mine"); // "mine" or "all"
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        if (!auth || !auth.currentUser) {
+          setError("No user logged in or authentication not initialized.");
+          console.log("Authentication check failed:", { authExists: !!auth, currentUser: auth?.currentUser });
+          return;
+        }
         const user = auth.currentUser;
-        if (user) {
-          const userQuery = query(collection(db, "users"), where("email", "==", user.email));
-          const userSnapshot = await getDocs(userQuery);
-          if (!userSnapshot.empty) {
-            const userData = userSnapshot.docs[0].data();
-            setUserName(userData.name || "Unknown");
-          } else {
-            setError("User data not found.");
-          }
+        console.log("Current user email:", user.email);
+        const userQuery = query(collection(db, "users"), where("email", "==", user.email));
+        const userSnapshot = await getDocs(userQuery);
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
+          const name = userData.name?.toLowerCase() || user.email.toLowerCase(); // Normalize to lowercase
+          setUserName(name);
+          console.log("Fetched userName:", name);
         } else {
-          setError("No authenticated user found.");
+          setError(`No user data found for email: ${user.email}`);
+          console.log("User snapshot empty for email:", user.email);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching user data:", error.message);
         setError("Failed to fetch user data. Please try again.");
       }
     };
@@ -54,65 +58,58 @@ const Assignments = () => {
 
   useEffect(() => {
     const fetchAssignments = async () => {
-      if (!userName) return;
       try {
         setIsLoading(true);
         setError("");
+        console.log("Fetching all assignments");
 
-        let q;
-        if (filter === "mine") {
-          q = query(collection(db, "assignments"), where("assignedBy", "==", userName));
-        } else {
-          q = query(collection(db, "assignments"));
-        }
-
+        const q = query(collection(db, "assignments")); // Fetch all documents
         const querySnapshot = await getDocs(q);
-        const assignmentIdsWithFiles = querySnapshot.docs
-          .filter((doc) => doc.data().filePath)
-          .map((doc) => doc.id);
+        console.log("Query snapshot size:", querySnapshot.size);
+        if (querySnapshot.empty) {
+          console.log("No documents found in assignments collection");
+        } else {
+          console.log("Documents found:", querySnapshot.docs.map(doc => ({ id: doc.id, assignedBy: doc.data().assignedBy })));
+        }
 
         const fetchedAssignments = await Promise.all(
           querySnapshot.docs.map(async (doc) => {
             const assignmentData = doc.data();
-            if (assignmentData.filePath && assignmentIdsWithFiles.includes(doc.id)) {
+            let fileURL = assignmentData.fileURL || ""; // Use fileURL from Firestore
+            if (assignmentData.filePath && !fileURL) { // Fallback to filePath
               try {
                 const { data: fileData } = await supabase
                   .storage
                   .from("assignments")
                   .getPublicUrl(assignmentData.filePath);
-                return {
-                  id: doc.id,
-                  ...assignmentData,
-                  fileURL: fileData.publicUrl || "",
-                };
+                fileURL = fileData.publicUrl || "";
+                console.log(`Fetched fileURL for ${doc.id}:`, fileURL);
               } catch (fileError) {
-                console.warn(`Failed to fetch file URL for ${doc.id}:`, fileError);
-                return {
-                  id: doc.id,
-                  ...assignmentData,
-                  fileURL: "",
-                };
+                console.warn(`Failed to fetch file URL for ${doc.id}:`, fileError.message);
               }
             }
+            console.log("Assignment data for", doc.id, ":", assignmentData);
             return {
               id: doc.id,
               ...assignmentData,
+              fileURL,
             };
           })
         );
+        console.log("Fetched assignments:", fetchedAssignments);
         setAssignments(fetchedAssignments);
       } catch (error) {
-        console.error("Error fetching assignments:", error);
+        console.error("Error fetching assignments:", error.message);
         setError("Failed to fetch assignments. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchAssignments();
-  }, [userName, filter]);
+  }, [userName]); // Still depends on userName for initial trigger
 
   const handleAddAssignments = () => {
-    navigation.navigate("AddAssignment");
+    navigation.navigate("CreateAssignment");
   };
 
   const handleViewAssignment = (id) => {
@@ -140,7 +137,7 @@ const Assignments = () => {
               }
               setAssignments(assignments.filter((assignment) => assignment.id !== id));
             } catch (error) {
-              console.error("Error deleting assignment:", error);
+              console.error("Error deleting assignment:", error.message);
               setError("Failed to delete assignment. Please try again.");
             }
           },
@@ -173,7 +170,7 @@ const Assignments = () => {
       setIsEditModalOpen(false);
       setSelectedAssignment(null);
     } catch (error) {
-      console.error("Error updating assignment:", error);
+      console.error("Error updating assignment:", error.message);
       setError("Failed to update assignment. Please try again.");
     }
   };
@@ -186,14 +183,6 @@ const Assignments = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Assignments</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setFilter(filter === "mine" ? "all" : "mine")}
-          >
-            <Text style={styles.filterButtonText}>
-              {filter === "mine" ? "All Assignments" : "My Assignments"}
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.addButton} onPress={handleAddAssignments}>
             <Text style={styles.addButtonText}>Create Assignment</Text>
           </TouchableOpacity>
@@ -380,19 +369,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  filterButton: {
-    backgroundColor: "#fff",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: "#333",
-    fontWeight: "500",
   },
   addButton: {
     backgroundColor: "#28a745",

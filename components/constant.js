@@ -11,3 +11,5 @@ export const YEAR_SUBJECTS = {
 };
 
 export const SUBJECTS = ["SIC", "GIS", "SQA", "ITSM", "BI"];
+
+export const DIVISIONS = [ "A","B","C" ];
