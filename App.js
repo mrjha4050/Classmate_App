@@ -19,6 +19,7 @@ import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
 import TeachersNotes from "./components/Teachers/teachersNotes";
 import AddNotes from "./screens/Addnotes";
+import SeeAttendance from "./components/Teachers/Seettendence";
 
 // Student Import Here
 import StudentAssignment from "./screens/StudentAssignment";
@@ -45,6 +46,7 @@ export default function App() {
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+          <Stack.Screen name="SeeAttendance" component={SeeAttendance} />
           <Stack.Screen
             name="AttendanceScreen"
             component={AttendanceScreen}
