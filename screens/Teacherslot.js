@@ -25,7 +25,7 @@ const Teacherslot = ({ navigation }) => {
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [loading, setLoading] = useState(false);
-  const [daysWithData, setDaysWithData] = useState(new Set()); // Track days with timetable data
+  const [daysWithData, setDaysWithData] = useState(new Set());  
 
   const excludedTeachers = ["Jaymala", "Anshika"];
 
@@ -44,7 +44,6 @@ const Teacherslot = ({ navigation }) => {
 
   const fetchAllTeachers = async () => {
     try {
-      // Assuming teachers are stored in `teachersinfo` with a field `department` matching the course
       const teachersRef = collection(db, "teachersinfo");
       const teachersSnap = await getDocs(teachersRef);
       const teacherList = [];

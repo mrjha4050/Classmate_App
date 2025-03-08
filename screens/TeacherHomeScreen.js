@@ -9,6 +9,10 @@ import {
   Alert,
   RefreshControl,
   Image,
+  ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
@@ -17,9 +21,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LogBox } from "react-native";
 
-LogBox.ignoreLogs([
-  "Warning: TextElement: Support for defaultProps will be removed",
-]);
+LogBox.ignoreLogs(["Warning: TextElement: Support for defaultProps"]);
 
 const TeacherHomeScreen = () => {
   const navigation = useNavigation();
@@ -27,15 +29,32 @@ const TeacherHomeScreen = () => {
   const [notices, setNotices] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [todayLecturesCount, setTodayLecturesCount] = useState(0);
-  const [recentActivity, setRecentActivity] = useState([]); // New state for recent activity
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [timetableUpdate, setTimetableUpdate] = useState(null); // Single most recent update
+  const [loadingUpdates, setLoadingUpdates] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // State to manage expansion
   const auth = getAuth();
 
   useEffect(() => {
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
     fetchUserDetails();
     fetchNotices();
     fetchTodayLectures();
-    fetchRecentActivity(); // Fetch recent activity
+    fetchRecentActivity();
   }, []);
+
+  useEffect(() => {
+    if (user?.department) {
+      fetchTimetableUpdates();
+    }
+  }, [user?.department]);
+
+  useEffect(() => {
+    // Reset isExpanded when timetableUpdate changes
+    setIsExpanded(false);
+  }, [timetableUpdate]);
 
   const fetchUserDetails = async () => {
     try {
@@ -149,9 +168,7 @@ const TeacherHomeScreen = () => {
   };
 
   const fetchRecentActivity = async () => {
-    // Mock implementation for recent activity (replace with actual Firestore query)
     try {
-      // Example: Fetch recent actions like notices posted or attendance marked
       const mockActivities = [
         { id: "1", action: "Posted a notice", timestamp: "Today, 10:30 AM" },
         { id: "2", action: "Marked attendance for Bsc.IT", timestamp: "Yesterday, 2:15 PM" },
@@ -163,13 +180,56 @@ const TeacherHomeScreen = () => {
     }
   };
 
+  const fetchTimetableUpdates = async () => {
+    setLoadingUpdates(true);
+    try {
+      const daytimetableRef = collection(db, "daytimetable");
+      const allDocs = await getDocs(daytimetableRef);
+      const updates = [];
+      allDocs.forEach((doc) => {
+        const data = doc.data();
+        const departmentMatch = data.department === user?.department;
+        if (departmentMatch) {
+          const dateStr = doc.id.split("_").pop(); // e.g., 20250308
+          const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`; // Convert to 2025-03-08
+          updates.push({
+            id: doc.id,
+            date: formattedDate,
+            description: data.description || "No description available",
+            lectures: data.lectures || [],
+          });
+        }
+      });
+
+      updates.sort((a, b) => b.date.localeCompare(a.date));
+      console.log("Fetched timetable updates:", updates);
+
+      const mostRecentUpdate = updates.length > 0 ? updates[0] : null;
+      setTimetableUpdate(mostRecentUpdate);
+    } catch (error) {
+      console.error("Error fetching timetable updates:", error);
+      Alert.alert("Error", "Error fetching timetable updates");
+    } finally {
+      setLoadingUpdates(false);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchUserDetails();
     await fetchNotices();
     await fetchTodayLectures();
     await fetchRecentActivity();
+    if (user?.department) {
+      await fetchTimetableUpdates();
+    }
     setRefreshing(false);
+  };
+
+  const toggleExpand = () => {
+    LayoutAnimation.spring();
+    console.log("Toggling isExpanded, current value:", isExpanded);
+    setIsExpanded((prev) => !prev);
   };
 
   return (
@@ -177,7 +237,6 @@ const TeacherHomeScreen = () => {
       {/* Header Section */}
       <View style={styles.headerContainer}>
         <View style={styles.headerProfile}>
-          {/* Placeholder for user avatar */}
           <View style={styles.avatar}>
             <MaterialIcons name="person" size={30} color="#fff" />
           </View>
@@ -252,6 +311,46 @@ const TeacherHomeScreen = () => {
               <Text style={styles.noDataText}>No recent activity available.</Text>
             )}
           </View>
+        </View>
+
+        {/* Timetable Updates Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Timetable Updates</Text>
+          {loadingUpdates ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2E86C1" />
+            </View>
+          ) : timetableUpdate ? (
+            <View style={[styles.card, styles.highlightedCard]}>
+              <Text style={styles.cardTitle}>
+                Update on {new Date(timetableUpdate.date).toLocaleDateString()}
+              </Text>
+              <Text
+                style={styles.cardText}
+                key={`description-${isExpanded}`} // Force re-render
+                numberOfLines={isExpanded ? undefined : 3}
+                ellipsizeMode={isExpanded ? undefined : "tail"}
+              >
+                {timetableUpdate.description}
+              </Text>
+              {timetableUpdate.lectures.length > 0 && (
+                <Text style={styles.cardText}>
+                  Lectures: {Array.isArray(timetableUpdate.lectures[0])
+                    ? timetableUpdate.lectures[0].map((l) => l.subject).join(", ")
+                    : timetableUpdate.lectures.map((l) => l.subject).join(", ")}
+                </Text>
+              )}
+              <TouchableOpacity onPress={toggleExpand}>
+                <Text style={styles.viewToggleText}>
+                  {isExpanded ? "View Less" : "View More"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.card}>
+              <Text style={styles.noDataText}>No recent timetable updates.</Text>
+            </View>
+          )}
         </View>
 
         {/* Attendance Section */}
@@ -400,11 +499,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  highlightedCard: {
+    borderWidth: 2,
+    borderColor: "#2E86C1",
+    backgroundColor: "#E3F2FD",
+    padding: 20,
+  },
   lectureCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#E3F2FD", // Light blue background for emphasis
+    backgroundColor: "#E3F2FD",
   },
   lectureCardContent: {
     marginLeft: 15,
@@ -418,6 +523,9 @@ const styles = StyleSheet.create({
   noticeItem: {
     marginBottom: 12,
   },
+  updateItem: {
+    marginBottom: 12,
+  },
   activityItem: {
     marginBottom: 12,
   },
@@ -429,12 +537,19 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 16,
     color: "#2C3E50",
-    marginLeft: 10,
+    marginVertical: 4,
   },
   cardDate: {
     fontSize: 14,
     color: "#7F8C8D",
     marginTop: 4,
+  },
+  viewToggleText: {
+    fontSize: 14,
+    color: "#2E86C1",
+    fontWeight: "600",
+    marginTop: 8,
+    textAlign: "right",
   },
   divider: {
     height: 1,
@@ -445,6 +560,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#7F8C8D",
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   floatingMenu: {
     flexDirection: "row",
