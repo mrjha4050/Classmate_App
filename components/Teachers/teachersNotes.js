@@ -140,9 +140,8 @@ const TeachersNotes = () => {
       setLoading(true); // Show loading indicator during download
       console.log("Downloading file from Supabase:", filePath);
 
-      // Generate the public URL for the file in Supabase storage
       const { data, error } = await supabase.storage
-        .from("notes") // Supabase bucket name
+        .from("notes")  
         .getPublicUrl(filePath);
 
       if (error) {
@@ -167,7 +166,6 @@ const TeachersNotes = () => {
 
       console.log("File downloaded to:", downloadRes.uri);
 
-      // Share or open the file (e.g., PDF, image, etc.)
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(downloadRes.uri, {
           mimeType: "application/pdf", // Adjust based on file type (e.g., "image/jpeg" for images)
@@ -191,7 +189,6 @@ const TeachersNotes = () => {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
-            {/* Create Notes Button (only for teachers) - Header Version */}
             {user?.role === "teacher" ? (
               <TouchableOpacity
                 style={styles.createButton}

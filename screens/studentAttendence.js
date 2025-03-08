@@ -18,7 +18,6 @@ export default function StudentAttendance({ navigation }) {
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
-        // Fetch user data from "users" to get the name and studentId
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 

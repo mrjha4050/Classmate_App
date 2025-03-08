@@ -67,7 +67,7 @@ const SeeAttendance = () => {
       // Calculate student-wise attendance stats
       const studentStats = {};
       allRecords.forEach((record) => {
-        const studentName = record.name.trim().toLowerCase();
+        const studentName = record.name ? record.name.trim().toLowerCase() : "unknown";
         if (!studentStats[studentName]) {
           studentStats[studentName] = { present: 0, total: 0 };
         }
@@ -102,7 +102,8 @@ const SeeAttendance = () => {
   const filteredRecords = searchQuery.trim()
     ? attendanceRecords.filter(
         (record) =>
-          record.name.trim().toLowerCase() === searchQuery.trim().toLowerCase()
+          (record.name ? record.name.trim().toLowerCase() : "unknown") ===
+          searchQuery.trim().toLowerCase()
       )
     : [];
 
@@ -138,7 +139,7 @@ const SeeAttendance = () => {
   const subjectChartData = {
     labels: Object.keys(groupedBySubject).map((label) =>
       label.length > 5 ? `${label.slice(0, 5)}...` : label
-    ), // Truncate long labels
+    ),
     datasets: [
       {
         data: Object.values(groupedBySubject).map(({ present, total }) =>
@@ -175,7 +176,7 @@ const SeeAttendance = () => {
       borderRadius: 16,
     },
     propsForLabels: {
-      fontSize: 10, // Reduce font size for better fit
+      fontSize: 10,
     },
   };
 
@@ -404,7 +405,7 @@ const SeeAttendance = () => {
                   <Text style={styles.chartTitle}>Subject-wise Attendance</Text>
                   <BarChart
                     data={subjectChartData}
-                    width={screenWidth * 0.8} // Adjusted for responsiveness
+                    width={screenWidth * 0.8}
                     height={200}
                     yAxisLabel=""
                     yAxisSuffix="%"
@@ -413,16 +414,16 @@ const SeeAttendance = () => {
                     withInnerLines={false}
                     flatColor={true}
                     style={styles.chartStyle}
-                    decorator={() => null} // Remove default decorator to avoid overlap
+                    decorator={() => null}
                     withCustomBarColorFromData={true}
-                    barPercentage={0.5} // Reduce bar width for better spacing
+                    barPercentage={0.5}
                   />
                 </View>
                 <View style={styles.chartCard}>
                   <Text style={styles.chartTitle}>Overall Attendance</Text>
                   <PieChart
                     data={pieChartData}
-                    width={screenWidth * 0.8} // Adjusted for responsiveness
+                    width={screenWidth * 0.8}
                     height={200}
                     chartConfig={chartConfig}
                     accessor="population"
@@ -662,7 +663,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   chartsScrollView: {
-    maxHeight: "60%", // Limit scrollable area to avoid covering buttons
+    maxHeight: "60%",
   },
   chartsContainer: {
     flexDirection: "column",

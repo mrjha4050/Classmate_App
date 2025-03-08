@@ -2,7 +2,7 @@ import React from "react";
 import "react-native-gesture-handler";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { AuthProvider } from "./AuthContext";  
+import { AuthProvider } from "./AuthContext";
 import SignInScreen from "./components/start";
 import LoginScreen from "./components/login";
 import HomeScreen from "./components/StudentHome";
@@ -17,14 +17,14 @@ import TeacherHomeScreen from "./screens/TeacherHomeScreen";
 import CreateTimetableScreen from "./screens/CreateTimeTableScreen";
 import ViewTimetableScreen from "./screens/ViewTimeTableScreen";
 import Teacherslot from "./screens/Teacherslot";
-
 import TeachersNotes from "./components/Teachers/teachersNotes";
 import AddNotes from "./screens/Addnotes";
 import Assignments from "./screens/Assignment";
 import CreateAssignment from "./components/Teachers/CreateAssignment";
 import SeeAttendance from "./components/Teachers/Seettendence";
+import AssignmentDetail from "./components/Students/AssignmentDetail";
 
-
+import StudentAssignments from "./screens/StudentAssignment";
 
 const Stack = createStackNavigator();
 
@@ -33,7 +33,11 @@ export default function App() {
     <AuthProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="SignIn">
-          <Stack.Screen name="SignIn" component={SignInScreen} />
+          <Stack.Screen
+            name="SignIn"
+            component={SignInScreen}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="LoginScreen"
             component={LoginScreen}
@@ -78,12 +82,29 @@ export default function App() {
             name="CreateTimetableScreen"
             component={CreateTimetableScreen}
           />
-          <Stack.Screen name="Teacherslot" component={Teacherslot} />
+          <Stack.Screen name="Teacherslot" component={Teacherslot} options={{ headerShown: false }} />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
-          <Stack.Screen name="CreateAssignment" component={CreateAssignment} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="CreateAssignment"
+            component={CreateAssignment}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Assignments"
+            component={Assignments}
+            options={{ headerShown: false }}
+          />
 
-          <Stack.Screen name="Assignments" component={Assignments} options={{ headerShown: false }} />
-
+          <Stack.Screen
+            name="StudentsAssignments"
+            component={StudentAssignments}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AssignmentDetail"
+            component={AssignmentDetail}
+            options={{ headerShown: false }} // Customize as needed
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

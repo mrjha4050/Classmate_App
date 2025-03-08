@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
+  FlatList,
   Alert,
   RefreshControl,
 } from "react-native";
@@ -19,12 +19,12 @@ const HomeScreen = () => {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const auth = getAuth();
 
   const fetchUserAndStudentDetails = async () => {
     try {
-      // Fetch user data from "users" collection using the authenticated user's ID
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -33,18 +33,15 @@ const HomeScreen = () => {
         return;
       }
 
-      // Get user name and user ID
       const userName = userDocSnap.data().name;
-      const userId = userDocSnap.id; // The document ID is the user ID
+      const userId = userDocSnap.id;
 
-      // Fetch student details using studentId (if available, otherwise use user ID)
       const studentId = userDocSnap.data().studentId || auth.currentUser.uid;
-      const studentDocRef = doc(db, "students", studentId); // Using "students" collection as shown in screenshot
+      const studentDocRef = doc(db, "students", studentId);
       const studentDocSnap = await getDoc(studentDocRef);
 
       if (studentDocSnap.exists()) {
         const studentDetails = studentDocSnap.data();
-        // Combine user and student data
         setUser({
           name: userName,
           userId: userId,
@@ -84,20 +81,61 @@ const HomeScreen = () => {
     }
   };
 
+  const fetchAssignments = async () => {
+    try {
+      const assignmentsCollection = collection(db, "assignments");
+      const assignmentsSnapshot = await getDocs(assignmentsCollection);
+      const assignmentsList = assignmentsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        subject: doc.data().subject,
+        description: doc.data().description,
+      }));
+      assignmentsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by timestamp
+      setAssignments(assignmentsList.slice(0, 1)); // Limit to 1 for display
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      Alert.alert("Error", "Error fetching assignments");
+    }
+  };
+
   useEffect(() => {
     fetchUserAndStudentDetails();
     fetchNotices();
+    fetchAssignments();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchUserAndStudentDetails();
     await fetchNotices();
+    await fetchAssignments();
     setRefreshing(false);
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
+  const renderAssignmentItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.assignmentCard}
+      onPress={() => navigation.navigate("StudentsAssignments")}  
+    >
+      <View style={styles.assignmentTextContainer}>
+        <Text style={styles.assignmentSubject}>{item.subject}</Text>
+        <Text style={styles.assignmentDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+      </View>
+      <MaterialIcons name="assignment" size={24} color="#FE8441" />
+    </TouchableOpacity>
+  );
+
+  const renderEmptyAssignment = () => (
+    <View style={styles.assignmentCard}>
+      <Text style={styles.cardText}>No assignments available</Text>
+      <MaterialIcons name="assignment" size={24} color="#FE8441" />
+    </View>
+  );
+
+  const renderHeader = () => (
+    <View>
       <View style={styles.headerContainer}>
         <MaterialIcons name="school" size={28} color="black" />
         <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
@@ -116,66 +154,81 @@ const HomeScreen = () => {
           : "Fetching details..."}
       </Text>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+      <View style={styles.section1}>
+        <Text style={styles.sectionTitle1}>Lectures</Text>
+        {notices.map((notice) => (
+          <TouchableOpacity
+            key={notice.id}
+            style={styles.card}
+            onPress={() => navigation.navigate("NoticeDetail", { notice })}
+          >
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardTitle}>{notice.title}</Text>
+              <Text style={styles.cardDate}>
+                {new Date(notice.date).toLocaleString()}
+              </Text>
+            </View>
+            <MaterialIcons name="event" size={24} color="black" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.section2}>
+        <Text style={styles.sectionTitle}>Explore Dashboard</Text>
+        <View style={styles.quickLinks}>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate("NoticePage")}
+          >
+            <Text style={styles.quickLinkText}>NoticePage</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate("ViewTimeTable")}
+          >
+            <Text style={styles.quickLinkText}>TimeTable</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate("AttendanceScreen")}
+          >
+            <Text style={styles.quickLinkText}>Attendance</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => navigation.navigate("TeachersNotes")}
+          >
+            <Text style={styles.quickLinkText}>Notes</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderFooter = () => (
+    <View style={styles.section3}>
+      <Text style={styles.sectionTitle}>Assignments</Text>
+      <FlatList
+        data={assignments}
+        renderItem={renderAssignmentItem}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={renderEmptyAssignment}
+        contentContainerStyle={styles.assignmentList}
+      />
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <FlatList
+        data={[]}
+        renderItem={null}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-      >
-        <View style={styles.section1}>
-          <Text style={styles.sectionTitle1}>Lectures</Text>
-          {notices.map((notice) => (
-            <TouchableOpacity
-              key={notice.id}
-              style={styles.card}
-              onPress={() => navigation.navigate("NoticeDetail", { notice })}
-            >
-              <View style={styles.cardTextContainer}>
-                <Text style={styles.cardTitle}>{notice.title}</Text>
-                <Text style={styles.cardDate}>
-                  {new Date(notice.date).toLocaleString()}
-                </Text>
-              </View>
-              <MaterialIcons name="event" size={24} color="black" />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.section2}>
-          <Text style={styles.sectionTitle}>Explore Dashboard</Text>
-          <View style={styles.quickLinks}>
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => navigation.navigate("NoticePage")}
-            >
-              <Text style={styles.quickLinkText}>NoticePage</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => navigation.navigate("ViewTimeTable")}
-            >
-              <Text style={styles.quickLinkText}>TimeTable</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickLinkButton}
-              onPress={() => navigation.navigate("StudentAttendance")}
-            >
-              <Text style={styles.quickLinkText}>Attendance</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.section3}>
-          <Text style={styles.sectionTitle}>Updated Info</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardText}>Enterprise Java</Text>
-            <Text style={styles.cardText}>3 new assignments</Text>
-            <MaterialIcons name="assignment" size={24} color="black" />
-          </View>
-        </View>
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 };
@@ -219,7 +272,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginHorizontal: 10,
     paddingHorizontal: 8,
-    borderRadius: 3,
+    borderRadius: 16,
+    backgroundColor: "#FEF0E6", // Light orange background for consistency
   },
   sectionTitle: {
     fontSize: 20,
@@ -238,11 +292,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  assignmentCard: {
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FE8441", // Orange accent
   },
   cardText: {
     fontSize: 13,
     flex: 1,
     marginRight: 6,
+  },
+  assignmentTextContainer: {
+    flex: 1,
+  },
+  assignmentSubject: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2C3E50",
+    marginBottom: 5,
+  },
+  assignmentDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginRight: 10,
   },
   quickLinks: {
     flexDirection: "row",
@@ -260,6 +349,9 @@ const styles = StyleSheet.create({
   quickLinkText: {
     color: "#FF945B",
     fontSize: 16,
+  },
+  assignmentList: {
+    paddingBottom: 20,
   },
 });
 

@@ -23,9 +23,9 @@ import {
 import { db } from "../config";
 import * as Notifications from "expo-notifications";
 import { COURSES } from "../components/constant";
-import DateTimePicker from "@react-native-community/datetimepicker"; // For native time picker
-import { Ionicons } from "@expo/vector-icons"; // For back icon (install @expo/vector-icons)
-import { useNavigation } from "@react-navigation/native"; // For navigation
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 // Set up notification handler
 Notifications.setNotificationHandler({
@@ -44,8 +44,8 @@ const AttendanceScreen = () => {
   const [selectedYear, setSelectedYear] = useState("Third Year");
   const [lectureName, setLectureName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [startTime, setStartTime] = useState(""); // Will store time in AM/PM format (e.g., "10:00 AM")
-  const [endTime, setEndTime] = useState(""); // Will store time in AM/PM format (e.g., "11:00 PM")
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isDataFetched, setIsDataFetched] = useState(false);
@@ -56,12 +56,13 @@ const AttendanceScreen = () => {
   const [startTimeModalVisible, setStartTimeModalVisible] = useState(false);
   const [endTimeModalVisible, setEndTimeModalVisible] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
-  const [tempStartTime, setTempStartTime] = useState(new Date()); // Temporary state for DateTimePicker
-  const [tempEndTime, setTempEndTime] = useState(new Date()); // Temporary state for DateTimePicker
+  const [tempStartTime, setTempStartTime] = useState(new Date());
+  const [tempEndTime, setTempEndTime] = useState(new Date());
+  const [displayMode, setDisplayMode] = useState("tile"); // "tile" or "list"
 
-  const navigation = useNavigation(); // Use navigation hook
+  const navigation = useNavigation();
 
-  // Fetch students with their names from 'users' collection
+  // Fetch students with their roll numbers
   const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
@@ -123,10 +124,10 @@ const AttendanceScreen = () => {
     }
   }, [selectedClass, selectedDivision, selectedYear]);
 
-  // Fetch subjects based on selected class (department)
+  // Fetch subjects based on selected class
   const fetchSubjects = useCallback(async () => {
     try {
-      setLoading(true); // Show loading while fetching subjects
+      setLoading(true);
       const subjectsQuery = query(
         collection(db, "subjects"),
         where("department", "==", selectedClass)
@@ -140,13 +141,13 @@ const AttendanceScreen = () => {
       console.error("Error fetching subjects:", error);
       Alert.alert("Error", "Failed to fetch subjects. Please try again.");
     } finally {
-      setLoading(false); // Hide loading after fetching
+      setLoading(false);
     }
   }, [selectedClass]);
 
   useEffect(() => {
     fetchSubjects();
-    fetchStudents(); // Fetch students on mount or when filters change
+    fetchStudents();
   }, [fetchSubjects, fetchStudents]);
 
   const handleAttendanceChange = useCallback((studentId, status) => {
@@ -155,6 +156,22 @@ const AttendanceScreen = () => {
       [studentId]: status,
     }));
   }, []);
+
+  const handleMarkAllPresent = useCallback(() => {
+    const newAttendance = {};
+    students.forEach((student) => {
+      newAttendance[student.id] = "P";
+    });
+    setAttendance(newAttendance);
+  }, [students]);
+
+  const handleMarkAllAbsent = useCallback(() => {
+    const newAttendance = {};
+    students.forEach((student) => {
+      newAttendance[student.id] = "A";
+    });
+    setAttendance(newAttendance);
+  }, [students]);
 
   const handleSaveAttendance = async () => {
     if (!lectureName || !startTime || !endTime) {
@@ -171,12 +188,12 @@ const AttendanceScreen = () => {
     try {
       const attendanceData = students.map((student) => ({
         date,
-        name: student.studentname,
         rollNo: student.rollno,
+        name: student.studentname, // Add student name to the attendance data
         subject: lectureName,
         status: attendance[student.id] || "N/A",
-        year: student.year, // Include student's year
-        course: student.course, // Include student's course
+        year: student.year,
+        course: student.course,
       }));
 
       await addDoc(collection(db, "studentAttendance"), {
@@ -184,7 +201,6 @@ const AttendanceScreen = () => {
         timestamp: new Date().toISOString(),
       });
 
-      // Enhanced popup for attendance saved
       Alert.alert(
         "Success",
         "Attendance saved successfully!",
@@ -192,10 +208,10 @@ const AttendanceScreen = () => {
           {
             text: "OK",
             onPress: () => {
-              setAttendance({}); // Reset attendance after confirmation
-              setLectureName(""); // Reset lecture name
-              setStartTime(""); // Reset start time
-              setEndTime(""); // Reset end time
+              setAttendance({});
+              setLectureName("");
+              setStartTime("");
+              setEndTime("");
             },
           },
         ],
@@ -209,14 +225,36 @@ const AttendanceScreen = () => {
     }
   };
 
-  const renderItem = useMemo(
+  const renderTile = useMemo(
+    () =>
+      ({ item }) =>
+        (
+          <View style={styles.tileContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tile,
+                attendance[item.id] === "P"
+                  ? styles.presentTile
+                  : styles.absentTile,
+              ]}
+              onPress={() =>
+                handleAttendanceChange(item.id, attendance[item.id] === "P" ? "A" : "P")
+              }
+              disabled={loading || notificationLoading}
+            >
+              <Text style={styles.tileText}>{item.rollno}</Text>
+            </TouchableOpacity>
+          </View>
+        ),
+    [attendance, handleAttendanceChange, loading, notificationLoading]
+  );
+
+  const renderList = useMemo(
     () =>
       ({ item }) =>
         (
           <View style={styles.studentCard}>
-            <Text style={styles.studentName}>
-              {item.rollno} - {item.studentname}
-            </Text>
+            <Text style={styles.studentName}>{item.studentname}</Text>
             <View style={styles.buttonsContainer}>
               <TouchableOpacity
                 style={[
@@ -248,7 +286,6 @@ const AttendanceScreen = () => {
     [attendance, handleAttendanceChange, loading, notificationLoading]
   );
 
-  // Handle time selection for startTime
   const onStartTimeChange = (event, selectedDate) => {
     if (selectedDate || event.type === "dismissed") {
       setStartTimeModalVisible(false);
@@ -257,7 +294,7 @@ const AttendanceScreen = () => {
         const hours = selectedDate.getHours();
         const minutes = selectedDate.getMinutes();
         const period = hours >= 12 ? "PM" : "AM";
-        const displayHours = hours % 12 || 12; // Convert to 12-hour format
+        const displayHours = hours % 12 || 12;
         const formattedTime = `${displayHours
           .toString()
           .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
@@ -266,7 +303,6 @@ const AttendanceScreen = () => {
     }
   };
 
-  // Handle time selection for endTime
   const onEndTimeChange = (event, selectedDate) => {
     if (selectedDate || event.type === "dismissed") {
       setEndTimeModalVisible(false);
@@ -275,7 +311,7 @@ const AttendanceScreen = () => {
         const hours = selectedDate.getHours();
         const minutes = selectedDate.getMinutes();
         const period = hours >= 12 ? "PM" : "AM";
-        const displayHours = hours % 12 || 12; // Convert to 12-hour format
+        const displayHours = hours % 12 || 12;
         const formattedTime = `${displayHours
           .toString()
           .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
@@ -285,12 +321,15 @@ const AttendanceScreen = () => {
   };
 
   const handleSeeAttendance = () => {
-    navigation.navigate("SeeAttendance"); // Navigate to SeeAttendance screen
+    navigation.navigate("SeeAttendance");
+  };
+
+  const handleDisplayModeChange = (mode) => {
+    setDisplayMode(mode);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Back Icon and Title */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -307,7 +346,7 @@ const AttendanceScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Input Row for Filters */}
+      {/* Filter Row */}
       <View style={styles.filterRow}>
         <TouchableOpacity
           style={styles.filterButton}
@@ -330,48 +369,75 @@ const AttendanceScreen = () => {
         >
           <Text style={styles.filterButtonText}>{selectedYear}</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setDisplayMode(displayMode === "tile" ? "list" : "tile")}
+          disabled={loading}
+        >
+          <Text style={styles.filterButtonText}>
+            {displayMode === "tile" ? "Switch to List" : "Switch to Tile"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Input Row for Date, Lecture, Time */}
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
-          editable={false}
-        />
-        <TouchableOpacity
-          style={styles.inputButton}
-          onPress={() => setSubjectModalVisible(true)}
-          disabled={loading || notificationLoading}
-        >
-          <Text style={styles.inputButtonText}>
-            {lectureName || "Select Lecture"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.inputButton}
-          onPress={() => {
-            setTempStartTime(new Date());
-            setStartTimeModalVisible(true);
-          }}
-          disabled={loading || notificationLoading}
-        >
-          <Text style={styles.inputButtonText}>
-            {startTime || "Start Time"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.inputButton}
-          onPress={() => {
-            setTempEndTime(new Date());
-            setEndTimeModalVisible(true);
-          }}
-          disabled={loading || notificationLoading}
-        >
-          <Text style={styles.inputButtonText}>{endTime || "End Time"}</Text>
-        </TouchableOpacity>
+      {/* Input Row with Labels */}
+      <View style={styles.inputContainer}>
+        <View style={styles.inputRow}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Date</Text>
+            <TextInput
+              style={styles.input}
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+              editable={false}
+            />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Lecture</Text>
+            <TouchableOpacity
+              style={styles.inputButton}
+              onPress={() => setSubjectModalVisible(true)}
+              disabled={loading || notificationLoading}
+            >
+              <Text style={styles.inputButtonText}>
+                {lectureName || "Select Lecture"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.inputRow}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Start Time</Text>
+            <TouchableOpacity
+              style={styles.inputButton}
+              onPress={() => {
+                setTempStartTime(new Date());
+                setStartTimeModalVisible(true);
+              }}
+              disabled={loading || notificationLoading}
+            >
+              <Text style={styles.inputButtonText}>
+                {startTime || "Start Time"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>End Time</Text>
+            <TouchableOpacity
+              style={styles.inputButton}
+              onPress={() => {
+                setTempEndTime(new Date());
+                setEndTimeModalVisible(true);
+              }}
+              disabled={loading || notificationLoading}
+            >
+              <Text style={styles.inputButtonText}>
+                {endTime || "End Time"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* Time Picker Modals */}
@@ -386,11 +452,11 @@ const AttendanceScreen = () => {
             <DateTimePicker
               value={tempStartTime}
               mode="time"
-              display="spinner" // Use spinner for scrollable AM/PM format
-              is24Hour={false} // Use 12-hour format with AM/PM
+              display="spinner"
+              is24Hour={false}
               onChange={onStartTimeChange}
-              textColor="#000" // Explicitly set text color to black
-              style={styles.dateTimePicker} // Custom style for visibility
+              textColor="#000"
+              style={styles.dateTimePicker}
             />
             <TouchableOpacity
               style={styles.closeButton}
@@ -414,11 +480,11 @@ const AttendanceScreen = () => {
             <DateTimePicker
               value={tempEndTime}
               mode="time"
-              display="spinner" // Use spinner for scrollable AM/PM format
-              is24Hour={false} // Use 12-hour format with AM/PM
+              display="spinner"
+              is24Hour={false}
               onChange={onEndTimeChange}
-              textColor="#000" // Explicitly set text color to black
-              style={styles.dateTimePicker} // Custom style for visibility
+              textColor="#000"
+              style={styles.dateTimePicker}
             />
             <TouchableOpacity
               style={styles.closeButton}
@@ -431,7 +497,25 @@ const AttendanceScreen = () => {
         </View>
       </Modal>
 
-      {/* Student List */}
+      {/* Bulk Action Buttons */}
+      <View style={styles.bulkActionRow}>
+        <TouchableOpacity
+          style={styles.bulkButton}
+          onPress={handleMarkAllPresent}
+          disabled={loading || notificationLoading || students.length === 0}
+        >
+          <Text style={styles.bulkButtonText}>Mark All Present</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.bulkButton}
+          onPress={handleMarkAllAbsent}
+          disabled={loading || notificationLoading || students.length === 0}
+        >
+          <Text style={styles.bulkButtonText}>Mark All Absent</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Student Grid/List */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E86C1" />
@@ -440,8 +524,10 @@ const AttendanceScreen = () => {
         <FlatList
           data={students}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          renderItem={displayMode === "tile" ? renderTile : renderList}
+          numColumns={displayMode === "tile" ? 3 : 1}
+          key={displayMode}
+          contentContainerStyle={styles.gridContent}
           ListEmptyComponent={
             <Text style={styles.noStudentsText}>No students found.</Text>
           }
@@ -612,11 +698,15 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#2E86C1",
-    padding: 10,
+    padding: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
   },
   backButton: {
     padding: 5,
@@ -627,7 +717,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   seeAttendanceButton: {
-    backgroundColor: "#28a745", // Green button to match attendance theme
+    backgroundColor: "#28a745",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -642,55 +732,95 @@ const styles = StyleSheet.create({
     backgroundColor: "#2E86C1",
     padding: 10,
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  inputRow: {
-    flexDirection: "row",
-    gap: 5,
     flexWrap: "wrap",
-    paddingHorizontal: 10,
-    marginBottom: 10,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 8,
   },
   filterButton: {
     backgroundColor: "#fff",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#ccc",
-    minWidth: 90,
+    margin: 5,
+    minWidth: 80,
     alignItems: "center",
   },
   filterButtonText: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#333",
     fontWeight: "500",
   },
-  input: {
+  inputContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  inputRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  inputWrapper: {
     flex: 1,
+    marginHorizontal: 5,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 5,
+    fontWeight: "500",
+  },
+  input: {
     backgroundColor: "#fff",
-    padding: 10,
+    padding: 8,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    fontSize: 16,
-    minWidth: 90,
+    borderRadius: 6,
+    fontSize: 14,
   },
   inputButton: {
-    flex: 1,
     backgroundColor: "#fff",
-    padding: 10,
+    padding: 8,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    minWidth: 90,
+    borderRadius: 6,
     alignItems: "center",
   },
   inputButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#333",
+  },
+  tileContainer: {
+    flex: 1,
+    margin: 5,
+  },
+  tile: {
+    padding: 5,
+    borderRadius: 5,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 40,
+    aspectRatio: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  presentTile: {
+    backgroundColor: "#28a745",
+  },
+  absentTile: {
+    backgroundColor: "#dc3545",
+  },
+  tileText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   studentCard: {
     flexDirection: "row",
@@ -741,17 +871,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  bulkActionRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: "#f0f0f0",
+    marginHorizontal: 10,
+    borderRadius: 8,
+  },
+  bulkButton: {
+    backgroundColor: "#2E86C1",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  bulkButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
   saveButton: {
     backgroundColor: "#2E86C1",
-    padding: 12,
-    margin: 15,
+    paddingVertical: 12,
+    marginHorizontal: 15,
+    marginVertical: 20,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   disabledButton: {
@@ -777,12 +941,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: "80%",
     alignItems: "center",
-    justifyContent: "center", // Center the DateTimePicker
+    justifyContent: "center",
   },
   dateTimePicker: {
-    width: "100%",
-    height: 200, // Adjust height to ensure visibility
-    backgroundColor: "#fff", // Ensure background is visible
+    width: "100",
+    height: 200,
+    backgroundColor: "#fff",
   },
   modalTitle: {
     fontSize: 20,
@@ -791,7 +955,7 @@ const styles = StyleSheet.create({
   },
   modalItem: {
     paddingVertical: 10,
-    width: "100%",
+    width: "100",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
@@ -817,8 +981,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
+  gridContent: {
     paddingBottom: 20,
+    paddingHorizontal: 10,
   },
   noStudentsText: {
     fontSize: 16,

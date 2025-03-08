@@ -102,6 +102,16 @@ const TodaysLectures = ({ navigation }) => {
     </View>
   );
 
+  const renderHeader = () => (
+    <>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#2E86C1" style={styles.loading} />
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : null}
+    </>
+  );
+
   const renderEmptyList = () => (
     <Text style={styles.noLecturesText}>No lectures found for today.</Text>
   );
@@ -114,20 +124,16 @@ const TodaysLectures = ({ navigation }) => {
           <MaterialIcons name="arrow-back" size={24} color="#2E86C1" />
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#2E86C1" style={styles.loading} />
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : (
-          <FlatList
-            data={lectures}
-            renderItem={renderLectureItem}
-            keyExtractor={(item, index) => index.toString()}
-            ListEmptyComponent={renderEmptyList}
-          />
-        )}
-      </ScrollView>
+      <View style={styles.contentContainer}>
+        <FlatList
+          data={isLoading || error ? [] : lectures}
+          renderItem={renderLectureItem}
+          keyExtractor={(item, index) => index.toString()}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmptyList}
+          contentContainerStyle={styles.listContainer}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -151,7 +157,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2E86C1",
   },
-  scrollContainer: {
+  contentContainer: {
+    flex: 1,
+  },
+  listContainer: {
     padding: 16,
     flexGrow: 1,
   },
@@ -189,13 +198,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   loading: {
-    flex: 1,
-    justifyContent: "center",
+    marginVertical: 20,
   },
   errorText: {
     color: "#dc3545",
     textAlign: "center",
-    marginTop: 20,
+    marginVertical: 20,
   },
 });
 

@@ -7,34 +7,45 @@ import {
   Alert,
   ScrollView,
   TextInput,
-  SafeAreaView, // Added SafeAreaView
+  SafeAreaView,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { CheckBox } from "react-native-elements"; // For checkboxes
+import { CheckBox } from "react-native-elements";
+import { LogBox } from "react-native";
 import { AuthContext } from "../AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../config";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // For custom safe area handling
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TeacherProfile = ({ navigation }) => {
   const { user } = useContext(AuthContext);
   const [teacherName, setTeacherName] = useState("");
   const [teacherProfile, setTeacherProfile] = useState({});
-  const [isEditing, setIsEditing] = useState(false); // Toggle edit mode
+  const [isEditing, setIsEditing] = useState(false);
   const [newDepartment, setNewDepartment] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [selectedSubjects, setSelectedSubjects] = useState([]); // Array of selected subjects
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [profilePhotoUri, setProfilePhotoUri] = useState(null); // Store local image URI
+  const [uploading, setUploading] = useState(false);
 
   const departments = ["Bsc.IT", "Bsc.CS", "BBA", "B.Com"];
   const subjects = ["ITSM", "SOA", "SIC", "GIS", "Python"];
+
+  // Suppress the defaultProps warning
+  useEffect(() => {
+    LogBox.ignoreLogs(["Warning: TextElement: Support for defaultProps"]);
+  }, []);
 
   const fetchTeacherName = async (teacherId) => {
     try {
       const userDocRef = doc(db, "users", teacherId);
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
-        setTeacherName(userDocSnap.data().name || "Unknown");
+        const data = userDocSnap.data();
+        setTeacherName(data.name || "Unknown");
       } else {
         Alert.alert("Error", "No user found for the teacher!");
       }
@@ -51,9 +62,12 @@ const TeacherProfile = ({ navigation }) => {
       if (teacherDocSnap.exists()) {
         const data = teacherDocSnap.data();
         setTeacherProfile(data);
+        setProfilePhotoUri(data.profilePhotoUrl || null); // Use profilePhotoUrl from Firestore
         setNewDepartment(data.department || "");
         setNewPhone(data.phone || "");
-        setSelectedSubjects(data.subjects || []); // Initialize selected subjects
+        setSelectedSubjects(data.subjects || []);
+      } else {
+        Alert.alert("Error", "No teacher profile found!");
       }
     } catch (error) {
       console.error("Error fetching teacher profile:", error);
@@ -67,14 +81,50 @@ const TeacherProfile = ({ navigation }) => {
       await updateDoc(teacherDocRef, {
         department: newDepartment,
         phone: newPhone,
-        subjects: selectedSubjects, // Save selected subjects
+        subjects: selectedSubjects,
+        profilePhotoUrl: profilePhotoUri, // Update with local URI or null if not set
       });
       Alert.alert("Success", "Profile updated successfully!");
-      setIsEditing(false); // Exit edit mode
-      fetchTeacherProfile(); // Refresh profile data
+      setIsEditing(false);
+      fetchTeacherProfile();
     } catch (error) {
       console.error("Error updating teacher profile:", error);
       Alert.alert("Error", "Failed to update profile.");
+    }
+  };
+
+  const pickImage = async () => {
+    console.log("pickImage function triggered");
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log("Permission result:", permissionResult);
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Denied", "Permission to access camera roll is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    console.log("ImagePicker result:", result);
+
+    if (!result.canceled) {
+      setUploading(true);
+      try {
+        const imageUri = result.assets[0].uri;
+        console.log("Selected image URI:", imageUri);
+        setProfilePhotoUri(imageUri); // Set the local URI for display
+        Alert.alert("Success", "Image selected successfully! Save to update profile.");
+      } catch (error) {
+        console.error("Error selecting image:", error);
+        Alert.alert("Error", "Failed to select image: " + error.message);
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      console.log("Image selection canceled by user");
     }
   };
 
@@ -96,7 +146,6 @@ const TeacherProfile = ({ navigation }) => {
   };
 
   const toggleSubjectSelection = (subject) => {
-    // Add or remove the subject from the selectedSubjects array
     if (selectedSubjects.includes(subject)) {
       setSelectedSubjects(selectedSubjects.filter((item) => item !== subject));
     } else {
@@ -104,72 +153,80 @@ const TeacherProfile = ({ navigation }) => {
     }
   };
 
-  // Get safe area insets
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={{ flex: 1, paddingTop: insets.top }}>
-
-
-<View style={styles.headerContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#2E86C1" />
-          </TouchableOpacity>
-          <Text style={styles.header}>Profile</Text>
-          <View style={styles.headerPlaceholder} /> Placeholder for alignment
-        </View>
-      <ScrollView style={styles.container}>
-
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.initialsContainer}>
-            <Text style={styles.initialsText}>{getInitials(teacherName)}</Text>
-          </View>
-          <Text style={styles.profileName}>{teacherName || "Unknown"}</Text>
-
-          {/* Department */}
-          <View style={styles.detailRow}>
-            <MaterialIcons name="school" size={20} color="#2E86C1" />
-            <Text style={styles.detailText}>
-              Department: {teacherProfile.department || "N/A"}
-            </Text>
-          </View>
-
-          {/* Phone */}
-          <View style={styles.detailRow}>
-            <MaterialIcons name="phone" size={20} color="#2E86C1" />
-            <Text style={styles.detailText}>
-              Phone: {teacherProfile.phone || "N/A"}
-            </Text>
-          </View>
-
-          {/* Subjects */}
-          <View style={styles.detailRow}>
-            <MaterialIcons name="book" size={20} color="#2E86C1" />
-            <Text style={styles.detailText}>
-              Subjects: {teacherProfile.subjects?.join(", ") || "N/A"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Edit Profile Button */}
-        <TouchableOpacity
-          style={styles.editProfileButton}
-          onPress={() => setIsEditing(!isEditing)} // Toggle edit mode
-        >
-          <Text style={styles.editProfileButtonText}>
-            {isEditing ? "Cancel" : "Edit Profile"}
-          </Text>
+    <SafeAreaView style={{ flex: 1, paddingTop: insets.top, backgroundColor: "#F5F7FA" }}>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <MaterialIcons name="arrow-back" size={24} color="#2E86C1" />
         </TouchableOpacity>
+        <Text style={styles.header}>Profile</Text>
+        <TouchableOpacity
+          style={styles.editIcon}
+          onPress={() => setIsEditing(!isEditing)}
+        >
+          <MaterialIcons name="edit" size={24} color="#2E86C1" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Edit Form (Visible when isEditing is true) */}
+      <ScrollView style={styles.container}>
+        <View style={styles.profileCard}>
+          {profilePhotoUri ? (
+            <Image
+              source={{ uri: profilePhotoUri }}
+              style={styles.profileImage}
+              onError={(e) => {
+                console.log("Image load error:", e.nativeEvent.error);
+                setProfilePhotoUri(null);
+              }}
+            />
+          ) : (
+            <View style={styles.initialsContainer}>
+              <Text style={styles.initialsText}>{getInitials(teacherName)}</Text>
+            </View>
+          )}
+          <Text style={styles.profileName}>{teacherName || "Unknown"}</Text>
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="school" size={20} color="#2E86C1" />
+              <Text style={styles.detailText}>
+                Department: {teacherProfile.department || "N/A"}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="phone" size={20} color="#2E86C1" />
+              <Text style={styles.detailText}>
+                Phone: {teacherProfile.phone || "N/A"}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="book" size={20} color="#2E86C1" />
+              <Text style={styles.detailText}>
+                Subjects: {teacherProfile.subjects?.join(", ") || "N/A"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {isEditing && (
           <View style={styles.editForm}>
-            {/* Department Dropdown */}
-            <View style={styles.inputContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Select Profile Photo</Text>
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={pickImage}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.uploadButtonText}>Select Photo</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>Department</Text>
               <Picker
                 selectedValue={newDepartment}
@@ -182,23 +239,25 @@ const TeacherProfile = ({ navigation }) => {
               </Picker>
             </View>
 
-            {/* Subject Checkboxes */}
-            <View style={styles.inputContainer}>
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>Subjects</Text>
-              {subjects.map((subject, index) => (
-                <CheckBox
-                  key={index}
-                  title={subject}
-                  checked={selectedSubjects.includes(subject)}
-                  onPress={() => toggleSubjectSelection(subject)}
-                  containerStyle={styles.checkboxContainer}
-                  textStyle={styles.checkboxText}
-                />
-              ))}
+              <View style={styles.checkboxContainer}>
+                {subjects.map((subject, index) => (
+                  <CheckBox
+                    key={index}
+                    title={subject}
+                    checked={selectedSubjects.includes(subject)}
+                    onPress={() => toggleSubjectSelection(subject)}
+                    checkedColor="#2E86C1"
+                    uncheckedColor="#7F8C8D"
+                    containerStyle={styles.checkbox}
+                    textStyle={styles.checkboxText}
+                  />
+                ))}
+              </View>
             </View>
 
-            {/* Phone Input */}
-            <View style={styles.inputContainer}>
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>Phone</Text>
               <TextInput
                 style={styles.input}
@@ -209,12 +268,15 @@ const TeacherProfile = ({ navigation }) => {
               />
             </View>
 
-            {/* Save Button */}
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={updateTeacherProfile}
-            >
+            <TouchableOpacity style={styles.saveButton} onPress={updateTeacherProfile}>
               <Text style={styles.saveButtonText}>Save Changes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.changePasswordButton}
+              onPress={() => Alert.alert("Feature", "Change Password coming soon!")}
+            >
+              <Text style={styles.changePasswordButtonText}>Change Password</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -226,121 +288,170 @@ const TeacherProfile = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#F4F6F7",
+    padding: 16,
+    backgroundColor: "#F5F7FA",
   },
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
+    padding: 16,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7E9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   backButton: {
     padding: 8,
   },
+  editIcon: {
+    padding: 8,
+  },
   header: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "600",
     color: "#2C3E50",
   },
-  headerPlaceholder: {
-    width: 24, // Same as back button size for alignment
-  },
-  profileSection: {
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 15,
     alignItems: "center",
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 15,
+    resizeMode: "cover",
   },
   initialsContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: "#2E86C1",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   initialsText: {
-    fontSize: 36,
-    color: "white",
+    fontSize: 40,
+    color: "#FFFFFF",
     fontWeight: "bold",
   },
   profileName: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: "#2C3E50",
-    marginBottom: 10,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  detailsContainer: {
+    width: "100%",
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   detailText: {
     fontSize: 16,
     color: "#2C3E50",
     marginLeft: 10,
   },
-  editProfileButton: {
-    backgroundColor: "#2E86C1",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  editProfileButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   editForm: {
-    marginTop: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    marginBottom: 20,
   },
-  inputContainer: {
+  inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
+    fontWeight: "500",
     color: "#2C3E50",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   picker: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7E9",
-  },
-  input: {
-    backgroundColor: "white",
-    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E5E7E9",
     padding: 10,
-    fontSize: 16,
   },
   checkboxContainer: {
     backgroundColor: "transparent",
     borderWidth: 0,
-    margin: 0,
+  },
+  checkbox: {
+    backgroundColor: "transparent",
+    borderWidth: 0,
     padding: 0,
+    margin: 0,
   },
   checkboxText: {
     fontSize: 16,
     color: "#2C3E50",
   },
+  input: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7E9",
+    padding: 12,
+    fontSize: 16,
+  },
+  uploadButton: {
+    backgroundColor: "#2E86C1",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  uploadButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   saveButton: {
     backgroundColor: "#28a745",
-    borderRadius: 8,
-    padding: 15,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: "center",
-    marginVertical: 10,
+    marginTop: 10,
   },
   saveButtonText: {
-    color: "white",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+  },
+  changePasswordButton: {
+    backgroundColor: "#2E86C1",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  changePasswordButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

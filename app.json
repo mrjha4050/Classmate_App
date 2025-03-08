@@ -22,7 +22,10 @@
       },
       "permissions": [
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "package": "com.namanjha.myapp"
     },
@@ -35,6 +38,8 @@
       ]
     ],
     "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://zwhghrbteuilgntrcrjr.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3aGdocmJ0ZXVpbGdudHJjcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1OTI3MjIsImV4cCI6MjA1NjE2ODcyMn0.2qGY82rbJnbhLELjL_QArHUsxsPv-b8Y8yVaY7bpCjo",
       "eas": {
         "projectId": "21932fca-02c4-4b1d-9db1-7a420348d6ca"
       }
@@ -42,6 +47,7 @@
     "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/21932fca-02c4-4b1d-9db1-7a420348d6ca"
-    }
+    },
+    "owner": "namanjha"
   }
 }
