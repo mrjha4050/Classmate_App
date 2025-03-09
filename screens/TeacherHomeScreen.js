@@ -10,9 +10,6 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
-  LayoutAnimation,
-  Platform,
-  UIManager,
 } from "react-native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
@@ -32,13 +29,9 @@ const TeacherHomeScreen = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [timetableUpdate, setTimetableUpdate] = useState(null); // Single most recent update
   const [loadingUpdates, setLoadingUpdates] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // State to manage expansion
   const auth = getAuth();
 
   useEffect(() => {
-    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
     fetchUserDetails();
     fetchNotices();
     fetchTodayLectures();
@@ -50,11 +43,6 @@ const TeacherHomeScreen = () => {
       fetchTimetableUpdates();
     }
   }, [user?.department]);
-
-  useEffect(() => {
-    // Reset isExpanded when timetableUpdate changes
-    setIsExpanded(false);
-  }, [timetableUpdate]);
 
   const fetchUserDetails = async () => {
     try {
@@ -190,13 +178,18 @@ const TeacherHomeScreen = () => {
         const data = doc.data();
         const departmentMatch = data.department === user?.department;
         if (departmentMatch) {
-          const dateStr = doc.id.split("_").pop(); // e.g., 20250308
+          const dateStr = doc.id.split("_").pop();  
           const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`; // Convert to 2025-03-08
           updates.push({
             id: doc.id,
             date: formattedDate,
             description: data.description || "No description available",
             lectures: data.lectures || [],
+            division: data.division || "N/A",
+            duration: data.duration || "N/A",
+            startTime: data.startTime || "N/A",
+            endTime: data.endTime || "N/A",
+            year: data.year || "N/A",
           });
         }
       });
@@ -224,12 +217,6 @@ const TeacherHomeScreen = () => {
       await fetchTimetableUpdates();
     }
     setRefreshing(false);
-  };
-
-  const toggleExpand = () => {
-    LayoutAnimation.spring();
-    console.log("Toggling isExpanded, current value:", isExpanded);
-    setIsExpanded((prev) => !prev);
   };
 
   return (
@@ -327,9 +314,8 @@ const TeacherHomeScreen = () => {
               </Text>
               <Text
                 style={styles.cardText}
-                key={`description-${isExpanded}`} // Force re-render
-                numberOfLines={isExpanded ? undefined : 3}
-                ellipsizeMode={isExpanded ? undefined : "tail"}
+                numberOfLines={3}
+                ellipsizeMode="tail"
               >
                 {timetableUpdate.description}
               </Text>
@@ -340,10 +326,10 @@ const TeacherHomeScreen = () => {
                     : timetableUpdate.lectures.map((l) => l.subject).join(", ")}
                 </Text>
               )}
-              <TouchableOpacity onPress={toggleExpand}>
-                <Text style={styles.viewToggleText}>
-                  {isExpanded ? "View Less" : "View More"}
-                </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("TimetableDetails", { timetableUpdate })}
+              >
+                <Text style={styles.viewToggleText}>View More</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -353,7 +339,6 @@ const TeacherHomeScreen = () => {
           )}
         </View>
 
-        {/* Attendance Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Attendance</Text>
           <TouchableOpacity onPress={() => navigation.navigate("AttendanceScreen")}>
@@ -385,14 +370,6 @@ const TeacherHomeScreen = () => {
             >
               <MaterialIcons name="assignment" size={20} color="#2E86C1" />
               <Text style={styles.quickLinkText}>Assignments</Text>
-            </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              onPress={() => navigation.navigate("NotesScreen")}
-              style={styles.quickLink}
-            >
-              <MaterialIcons name="note" size={20} color="#2E86C1" />
-              <Text style={styles.quickLinkText}>Notes</Text>
             </TouchableOpacity>
           </View>
         </View>

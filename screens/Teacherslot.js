@@ -19,15 +19,17 @@ import { YEARS, COURSES } from "../components/constant";
 
 const Teacherslot = ({ navigation }) => {
   const [teachers, setTeachers] = useState([]);
-  const [allTeachers, setAllTeachers] = useState([]);  
+  const [allTeachers, setAllTeachers] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("Bsc.IT");
-  const [selectedYear, setSelectedYear] = useState("Third Year");
+  const [selectedYear, setSelectedYear] = useState("All Years");
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [loading, setLoading] = useState(false);
-  const [daysWithData, setDaysWithData] = useState(new Set());  
+  const [daysWithData, setDaysWithData] = useState(new Set());
 
   const excludedTeachers = ["Jaymala", "Anshika"];
+  const startHour = 7; // 7:00 AM
+  const endHour = 14; // 2:00 PM
 
   const generateDays = () => {
     const today = new Date();
@@ -61,22 +63,28 @@ const Teacherslot = ({ navigation }) => {
     }
   };
 
-  const fetchAllLecturesForDay = async (selectedDay) => {
+  const fetchAllLecturesForDay = async (day) => {
     try {
-      const path = `timetable/${selectedCourse}/${selectedYear}/${selectedDay}`;
-      console.log("Fetching lectures from path:", path);
-      const dayDocRef = doc(db, path);
-      const docSnap = await getDoc(dayDocRef);
+      const allLectures = [];
+      const years = ["First Year", "Second Year", "Third Year"];
+      for (const year of years) {
+        const path = `timetable/${selectedCourse}/${year}/${day}`;
+        console.log("Fetching lectures from path:", path);
+        const dayDocRef = doc(db, path);
+        const docSnap = await getDoc(dayDocRef);
 
-      if (docSnap.exists()) {
-        const lectures = docSnap.data().lectures || [];
-        console.log("Fetched lectures:", lectures);
-        return lectures;
+        if (docSnap.exists()) {
+          const lectures = docSnap.data().lectures || [];
+          console.log(`Lectures for ${year} on ${day}:`, lectures);
+          allLectures.push(...lectures);
+        } else {
+          console.log(`No document found at path: ${path}`);
+        }
       }
-      console.log("No document found at path:", path);
-      return [];
+      console.log("All lectures for", day, ":", allLectures);
+      return allLectures;
     } catch (error) {
-      console.error("Error fetching lectures:", error, "Path:", path);
+      console.error("Error fetching lectures:", error);
       Alert.alert("Error", `Failed to fetch teacher availability: ${error.message}`);
       return [];
     }
@@ -85,18 +93,23 @@ const Teacherslot = ({ navigation }) => {
   const checkDaysWithData = async () => {
     const daysSet = new Set();
     const generatedDays = generateDays();
+    const years = ["First Year", "Second Year", "Third Year"];
     for (const day of generatedDays) {
-      const path = `timetable/${selectedCourse}/${selectedYear}/${day.day}`;
-      const dayDocRef = doc(db, path);
-      const docSnap = await getDoc(dayDocRef);
-      if (docSnap.exists()) {
-        daysSet.add(day.day);
+      for (const year of years) {
+        const path = `timetable/${selectedCourse}/${year}/${day.day}`;
+        const dayDocRef = doc(db, path);
+        const docSnap = await getDoc(dayDocRef);
+        if (docSnap.exists()) {
+          daysSet.add(day.day);
+          break; // Exit loop once data is found for this day
+        }
       }
     }
+    console.log("Days with data:", Array.from(daysSet));
     setDaysWithData(daysSet);
   };
 
-  const determineTeacherFreeSlots = (lectures, startHour = 7, endHour = 14) => {
+  const determineTeacherFreeSlots = (lectures) => {
     // Initialize slots for all teachers as free
     const teacherSlots = {};
     allTeachers.forEach((teacher) => {
@@ -116,8 +129,15 @@ const Teacherslot = ({ navigation }) => {
         : timeSlot.split(" - ");
       const startTimeStr = start.replace(".", ":");
       const endTimeStr = end.replace(".", ":");
-      const startTime = parseInt(startTimeStr.split(":")[0]);
-      const endTime = parseInt(endTimeStr.split(":")[0]);
+      let startTime, endTime;
+
+      try {
+        startTime = parseInt(startTimeStr.split(":")[0]);
+        endTime = parseInt(endTimeStr.split(":")[0]);
+      } catch (error) {
+        console.error(`Error parsing timeSlot for lecture: ${JSON.stringify(lecture)}`, error);
+        return;
+      }
 
       if (teacherSlots[teacher]) {
         for (let hour = startTime; hour < endTime; hour++) {
@@ -138,6 +158,11 @@ const Teacherslot = ({ navigation }) => {
           return null;
         })
         .filter((slot) => slot !== null);
+
+      // Include teachers with at least one free slot
+      if (freeSlots[teacher].length === 0) {
+        delete freeSlots[teacher]; // Remove if no free slots
+      }
     });
 
     return freeSlots;
@@ -145,15 +170,21 @@ const Teacherslot = ({ navigation }) => {
 
   const fetchTeacherAvailability = useCallback(async (day) => {
     setLoading(true);
-    const lectures = await fetchAllLecturesForDay(day);
-    const teacherFreeSlots = determineTeacherFreeSlots(lectures);
-    const teacherData = Object.entries(teacherFreeSlots)
-      .map(([teacher, freeSlots]) => ({ teacher, freeSlots }))
-      .filter((item) => item.freeSlots.length > 0)
-      .sort((a, b) => a.teacher.localeCompare(b.teacher)); // Sort alphabetically
-    setTeachers(teacherData);
-    setLoading(false);
-  }, [selectedCourse, selectedYear, allTeachers]);
+    try {
+      const lectures = await fetchAllLecturesForDay(day);
+      const teacherFreeSlots = determineTeacherFreeSlots(lectures);
+      const teacherData = Object.entries(teacherFreeSlots)
+        .map(([teacher, freeSlots]) => ({ teacher, freeSlots }))
+        .sort((a, b) => a.teacher.localeCompare(b.teacher)); // Sort alphabetically
+      console.log("Teachers with free slots on", day, ":", teacherData);
+      setTeachers(teacherData);
+    } catch (error) {
+      console.error("Error in fetchTeacherAvailability:", error);
+      Alert.alert("Error", "Failed to fetch teacher availability.");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCourse, allTeachers]);
 
   useEffect(() => {
     const generatedDays = generateDays();
@@ -165,7 +196,7 @@ const Teacherslot = ({ navigation }) => {
 
     fetchAllTeachers();
     checkDaysWithData();
-  }, [selectedCourse, selectedYear]);
+  }, [selectedCourse]);
 
   useEffect(() => {
     if (allTeachers.length > 0) {
@@ -266,7 +297,7 @@ const Teacherslot = ({ navigation }) => {
                   }}
                   style={styles.picker}
                 >
-                  {["First Year", "Second Year", "Third Year"].map((year, index) => (
+                  {["All Years", "First Year", "Second Year", "Third Year"].map((year, index) => (
                     <Picker.Item key={index} label={year} value={year} />
                   ))}
                 </Picker>
@@ -340,10 +371,6 @@ const styles = StyleSheet.create({
     color: "#2C3E50",
     flex: 1,
     textAlign: "center",
-  },
-  container: {
-    flex: 1,
-    padding: 16,
   },
   title: {
     fontSize: 24,

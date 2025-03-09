@@ -99,6 +99,7 @@ const AttendanceScreen = () => {
             rollno: studentData.rollno || "N/A",
             studentid: studentData.studentid || "N/A",
             year: studentData.year,
+            userId: studentData.userId,
             studentname: userDoc.exists()
               ? userDoc.data().name || "Unknown"
               : "Unknown",
@@ -189,11 +190,12 @@ const AttendanceScreen = () => {
       const attendanceData = students.map((student) => ({
         date,
         rollNo: student.rollno,
-        name: student.studentname, // Add student name to the attendance data
+        name: student.studentname, 
         subject: lectureName,
         status: attendance[student.id] || "N/A",
         year: student.year,
         course: student.course,
+        userId: student.userId,  
       }));
 
       await addDoc(collection(db, "studentAttendance"), {

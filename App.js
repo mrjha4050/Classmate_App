@@ -23,8 +23,10 @@ import Assignments from "./screens/Assignment";
 import CreateAssignment from "./components/Teachers/CreateAssignment";
 import SeeAttendance from "./components/Teachers/Seettendence";
 import AssignmentDetail from "./components/Students/AssignmentDetail";
+import TimetableDetailsScreen from "./components/Daytimetable";
 
 import StudentAssignments from "./screens/StudentAssignment";
+import SeestudentAttendence from "./components/Students/SeeStudentAttendeance";
 
 const Stack = createStackNavigator();
 
@@ -48,15 +50,28 @@ export default function App() {
             component={HomeScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="StudentAttendance"
+            component={SeestudentAttendence}
+          />
           <Stack.Screen name="NoticePage" component={NoticePage} />
           <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
           <Stack.Screen name="SeeAttendance" component={SeeAttendance} />
+          <Stack.Screen
+            name="TimetableDetails"
+            component={TimetableDetailsScreen}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="AttendanceScreen"
             component={AttendanceScreen}
             options={{ headerShown: false }}
           />
-          <Stack.Screen name="ViewTimeTable" component={ViewTimetableScreen} />
+          <Stack.Screen
+            name="ViewTimeTable"
+            component={ViewTimetableScreen}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="CreateNoticeScreen"
             component={CreateNoticeScreen}
@@ -82,7 +97,11 @@ export default function App() {
             name="CreateTimetableScreen"
             component={CreateTimetableScreen}
           />
-          <Stack.Screen name="Teacherslot" component={Teacherslot} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="Teacherslot"
+            component={Teacherslot}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="TeachersNotes" component={TeachersNotes} />
           <Stack.Screen
             name="CreateAssignment"
@@ -94,7 +113,6 @@ export default function App() {
             component={Assignments}
             options={{ headerShown: false }}
           />
-
           <Stack.Screen
             name="StudentsAssignments"
             component={StudentAssignments}
@@ -103,7 +121,7 @@ export default function App() {
           <Stack.Screen
             name="AssignmentDetail"
             component={AssignmentDetail}
-            options={{ headerShown: false }} // Customize as needed
+            options={{ headerShown: false }}
           />
         </Stack.Navigator>
       </NavigationContainer>

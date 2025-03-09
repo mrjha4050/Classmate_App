@@ -20,7 +20,6 @@ const NoticesScreen = () => {
   const navigation = useNavigation();
   const { user } = useContext(AuthContext);
 
-  // Handle case where user is not authenticated
   if (!user || !user.uid) {
     return (
       <View style={styles.container}>
@@ -38,13 +37,10 @@ const NoticesScreen = () => {
         const noticesSnapshot = await getDocs(noticesCollection);
         const noticesList = noticesSnapshot.docs.map((doc) => {
           const data = doc.data();
-          // Safely handle the createdAt field (Firebase Timestamp, string, or number)
           let formattedDate = "Invalid Date";
           if (data.createdAt && data.createdAt.toDate) {
-            // If it's a Firebase Timestamp
             formattedDate = data.createdAt.toDate().toLocaleString();
           } else if (data.createdAt && typeof data.createdAt === "string") {
-            // If it's a string (e.g., ISO date like "2025-02-25T17:56:49.429Z")
             const parsedDate = new Date(data.createdAt);
             formattedDate = isNaN(parsedDate.getTime())
               ? "Invalid Date"

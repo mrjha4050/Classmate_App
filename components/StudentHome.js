@@ -8,12 +8,15 @@ import {
   FlatList,
   Alert,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+
+const { width } = Dimensions.get("window");
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -50,7 +53,7 @@ const HomeScreen = () => {
           year: studentDetails.year,
           division: studentDetails.division,
           phoneNumber: studentDetails.phonenumber,
-          studentId: studentId,
+          // userId: student.studentid,  
         });
       } else {
         setUser({
@@ -90,8 +93,8 @@ const HomeScreen = () => {
         subject: doc.data().subject,
         description: doc.data().description,
       }));
-      assignmentsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by timestamp
-      setAssignments(assignmentsList.slice(0, 1)); // Limit to 1 for display
+      assignmentsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setAssignments(assignmentsList.slice(0, 1));
     } catch (error) {
       console.error("Error fetching assignments:", error);
       Alert.alert("Error", "Error fetching assignments");
@@ -114,99 +117,123 @@ const HomeScreen = () => {
 
   const renderAssignmentItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.assignmentCard}
-      onPress={() => navigation.navigate("StudentsAssignments")}  
+      style={styles.card}
+      onPress={() => navigation.navigate("StudentsAssignments")}
+      activeOpacity={0.8}
     >
-      <View style={styles.assignmentTextContainer}>
-        <Text style={styles.assignmentSubject}>{item.subject}</Text>
-        <Text style={styles.assignmentDescription} numberOfLines={2}>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <MaterialIcons name="assignment" size={24} color="#FF6F61" />
+          <Text style={styles.cardTitle}>{item.subject}</Text>
+        </View>
+        <Text style={styles.cardText} numberOfLines={2}>
           {item.description}
         </Text>
       </View>
-      <MaterialIcons name="assignment" size={24} color="#FE8441" />
     </TouchableOpacity>
   );
 
   const renderEmptyAssignment = () => (
-    <View style={styles.assignmentCard}>
-      <Text style={styles.cardText}>No assignments available</Text>
-      <MaterialIcons name="assignment" size={24} color="#FE8441" />
+    <View style={styles.card}>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <MaterialIcons name="assignment" size={24} color="#FF6F61" />
+          <Text style={styles.cardTitle}>No Assignments</Text>
+        </View>
+        <Text style={styles.cardText}>No assignments available.</Text>
+      </View>
     </View>
+  );
+
+  const quickLinks = [
+    { name: "Notices", icon: "notifications", screen: "NoticePage" },
+    { name: "Timetable", icon: "calendar-today", screen: "ViewTimeTable" },
+    { name: "Attendance", icon: "check-circle", screen: "StudentAttendance" },
+    { name: "Notes", icon: "note", screen: "TeachersNotes" },
+  ];
+
+  const renderQuickLink = ({ item }) => (
+    <TouchableOpacity
+      style={styles.quickLinkCard}
+      onPress={() => navigation.navigate(item.screen)}
+      activeOpacity={0.8}
+    >
+      <MaterialIcons name={item.icon} size={28} color="#FF6F61" />
+      <Text style={styles.quickLinkText}>{item.name}</Text>
+    </TouchableOpacity>
   );
 
   const renderHeader = () => (
     <View>
-      <View style={styles.headerContainer}>
-        <MaterialIcons name="school" size={28} color="black" />
-        <Text style={styles.header}>{user ? user.name : "Loading..."}</Text>
-        <TouchableOpacity
-          style={styles.avatarContainer}
-          onPress={() => navigation.navigate("ProfileScreen")}
-        >
-          <MaterialIcons name="person" size={29} color="black" />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.subHeader}>
-        {user
-          ? `Class - ${user.course || "N/A"} || Roll No - ${
-              user.rollNumber || "N/A"
-            }`
-          : "Fetching details..."}
-      </Text>
-
-      <View style={styles.section1}>
-        <Text style={styles.sectionTitle1}>Lectures</Text>
-        {notices.map((notice) => (
+      <View style={[styles.headerContainer, { backgroundColor: "#FF6F61" }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerText}>
+              Hello, {user ? user.name : "Student"}
+            </Text>
+            <Text style={styles.subHeaderText}>
+              {user
+                ? `${user.course || "N/A"} | Roll No: ${user.rollNumber || "N/A"}`
+                : "Fetching details..."}
+            </Text>
+          </View>
           <TouchableOpacity
-            key={notice.id}
-            style={styles.card}
-            onPress={() => navigation.navigate("NoticeDetail", { notice })}
+            style={styles.profileButton}
+            onPress={() => navigation.navigate("ProfileScreen")}
           >
-            <View style={styles.cardTextContainer}>
-              <Text style={styles.cardTitle}>{notice.title}</Text>
-              <Text style={styles.cardDate}>
-                {new Date(notice.date).toLocaleString()}
-              </Text>
-            </View>
-            <MaterialIcons name="event" size={24} color="black" />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.section2}>
-        <Text style={styles.sectionTitle}>Explore Dashboard</Text>
-        <View style={styles.quickLinks}>
-          <TouchableOpacity
-            style={styles.quickLinkButton}
-            onPress={() => navigation.navigate("NoticePage")}
-          >
-            <Text style={styles.quickLinkText}>NoticePage</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickLinkButton}
-            onPress={() => navigation.navigate("ViewTimeTable")}
-          >
-            <Text style={styles.quickLinkText}>TimeTable</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickLinkButton}
-            onPress={() => navigation.navigate("AttendanceScreen")}
-          >
-            <Text style={styles.quickLinkText}>Attendance</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickLinkButton}
-            onPress={() => navigation.navigate("TeachersNotes")}
-          >
-            <Text style={styles.quickLinkText}>Notes</Text>
+            <MaterialIcons name="person" size={28} color="#FFF" />
           </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Notices</Text>
+        {notices.length > 0 ? (
+          notices.map((notice) => (
+            <TouchableOpacity
+              key={notice.id}
+              style={styles.card}
+              onPress={() => navigation.navigate("NoticePage", { notice })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <MaterialIcons name="event" size={24} color="#FF6F61" />
+                  <Text style={styles.cardTitle}>{notice.title}</Text>
+                </View>
+                <Text style={styles.cardText} numberOfLines={2}>
+                  {notice.date
+                    ? new Date(notice.date).toLocaleString()
+                    : "No date available"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.card}>
+            <View style={styles.cardContent}>
+              <Text style={styles.cardText}>No recent notices available.</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Links Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Explore Dashboard</Text>
+        <FlatList
+          data={quickLinks}
+          renderItem={renderQuickLink}
+          keyExtractor={(item) => item.name}
+          numColumns={2}
+          columnWrapperStyle={styles.quickLinksRow}
+        />
       </View>
     </View>
   );
 
   const renderFooter = () => (
-    <View style={styles.section3}>
+    <View style={styles.section}>
       <Text style={styles.sectionTitle}>Assignments</Text>
       <FlatList
         data={assignments}
@@ -226,8 +253,14 @@ const HomeScreen = () => {
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FF6F61"]}
+            tintColor="#FF6F61"
+          />
         }
+        contentContainerStyle={styles.scrollContent}
       />
     </SafeAreaView>
   );
@@ -236,119 +269,109 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#F5F7FA",
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   headerContainer: {
+    padding: 20,
+    paddingTop: 40,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  headerContent: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 15,
+    alignItems: "center",
   },
-  subHeader: {
-    fontSize: 18,
-    marginBottom: 6,
-    paddingHorizontal: 10,
+  headerTextContainer: {
+    flex: 1,
   },
-  header: {
-    fontSize: 24,
+  headerText: {
+    fontSize: 28,
     fontWeight: "bold",
-    marginLeft: 10,
+    color: "#FFF",
+    marginBottom: 5,
   },
-  section1: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-    paddingHorizontal: 8,
-    backgroundColor: "#FE8441",
-    borderRadius: 16,
+  subHeaderText: {
+    fontSize: 16,
+    color: "#FFF",
+    opacity: 0.9,
   },
-  section2: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-    paddingHorizontal: 8,
-    borderRadius: 3,
+  profileButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    padding: 10,
+    borderRadius: 50,
   },
-  section3: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-    paddingHorizontal: 8,
-    borderRadius: 16,
-    backgroundColor: "#FEF0E6", // Light orange background for consistency
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    marginVertical: 10,
-  },
-  sectionTitle1: {
-    color: "white",
-    fontSize: 20,
-    marginVertical: 10,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginBottom: 15,
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: "hidden",
   },
-  assignmentCard: {
-    backgroundColor: "#fff",
+  cardContent: {
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+  },
+  cardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderLeftWidth: 4,
-    borderLeftColor: "#FE8441", // Orange accent
+    marginBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginLeft: 10,
+    flex: 1,
   },
   cardText: {
-    fontSize: 13,
-    flex: 1,
-    marginRight: 6,
-  },
-  assignmentTextContainer: {
-    flex: 1,
-  },
-  assignmentSubject: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#2C3E50",
-    marginBottom: 5,
-  },
-  assignmentDescription: {
     fontSize: 14,
     color: "#666",
-    marginRight: 10,
+    lineHeight: 20,
   },
-  quickLinks: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  quickLinksRow: {
     justifyContent: "space-between",
   },
-  quickLinkButton: {
-    backgroundColor: "#FBEEE6",
+  quickLinkCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    width: "48%",
+    width: (width - 60) / 2, // Adjust width for 2 columns with spacing
+    marginBottom: 12,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   quickLinkText: {
-    color: "#FF945B",
     fontSize: 16,
+    fontWeight: "500",
+    color: "#2C3E50",
+    marginTop: 8,
   },
   assignmentList: {
     paddingBottom: 20,

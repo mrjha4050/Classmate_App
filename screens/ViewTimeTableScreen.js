@@ -1,21 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, Button, Alert, SafeAreaView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../config';
 import { doc, getDoc } from 'firebase/firestore';
 import { format, addDays } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';  
+import { Ionicons } from '@expo/vector-icons';
+import { getAuth } from 'firebase/auth';
+import { useNavigation } from '@react-navigation/native';
 
-const ViewTimetableScreen = ({ navigation }) => {  
-  const [timetable, setTimetable] = useState({ lectures: [] });  
+const ViewTimetableScreen = () => {
+  const [timetable, setTimetable] = useState({ lectures: [] });
   const [days, setDays] = useState([]);
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedYear, setSelectedYear] = useState("Third Year");
-  
+  const [selectedYear, setSelectedYear] = useState("");
+  const auth = getAuth();
+  const navigation = useNavigation();
+
   useEffect(() => {
-    fetchTimetable();
+    fetchStudentYear();
+  }, []);
+
+  useEffect(() => {
+    if (selectedYear) {
+      fetchTimetable();
+    }
   }, [selectedYear, selectedDay]);
+
+  const fetchStudentYear = async () => {
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const studentId = userDocSnap.data().studentId || auth.currentUser.uid;
+        const studentDocRef = doc(db, "students", studentId);
+        const studentDocSnap = await getDoc(studentDocRef);
+
+        if (studentDocSnap.exists()) {
+          const studentYear = studentDocSnap.data().year;
+          setSelectedYear(studentYear);
+        } else {
+          Alert.alert("Warning", "Student details not found!");
+        }
+      } else {
+        Alert.alert("Error", "No such user!");
+      }
+    } catch (error) {
+      console.error("Error fetching student year:", error);
+      Alert.alert("Error", "Error fetching student year.");
+    }
+  };
 
   const fetchTimetable = async () => {
     try {
@@ -68,117 +103,130 @@ const ViewTimetableScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-
-      <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Edit Timetable</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('CreateTimetableScreen')} // Navigate to CreateNoticeScreen
-          style={styles.editButton}
-        >
-          <Ionicons name="create-outline" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
-        <Text style={styles.label}>Select Year</Text>
-        <Text style={styles.selectionText}>{selectedYear}</Text>
-      </TouchableOpacity>
-
-      <Modal
-        transparent={true}
-        animationType="slide"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalLabel}>Select Year:</Text>
-            <Picker
-              selectedValue={selectedYear}
-              onValueChange={(itemValue) => setSelectedYear(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="First Year" value="First Year" />
-              <Picker.Item label="Second Year" value="Second Year" />
-              <Picker.Item label="Third Year" value="Third Year" />
-            </Picker>
-            <Button title="Done" onPress={() => setModalVisible(false)} />
-          </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Timetable</Text>
+          <View style={styles.emptySpace} />
         </View>
-      </Modal>
 
-      <View style={styles.dayBarContainer}>
-        <FlatList
-          data={days}
-          horizontal
-          renderItem={renderDayItem}
-          keyExtractor={(item) => item.date + item.day}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dayBar}
-        />
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.selectionView}>
+          <Text style={styles.label}>Select Year</Text>
+          <Text style={styles.selectionText}>{selectedYear}</Text>
+        </TouchableOpacity>
+
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalLabel}>Select Year:</Text>
+              <Picker
+                selectedValue={selectedYear}
+                onValueChange={(itemValue) => setSelectedYear(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="First Year" value="First Year" />
+                <Picker.Item label="Second Year" value="Second Year" />
+                <Picker.Item label="Third Year" value="Third Year" />
+              </Picker>
+              <Button title="Done" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.dayBarContainer}>
+          <FlatList
+            data={days}
+            horizontal
+            renderItem={renderDayItem}
+            keyExtractor={(item) => item.date + item.day}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dayBar}
+          />
+        </View>
+
+        <ScrollView style={styles.contentContainer}>
+          {timetable?.lectures?.length > 0 ? (
+            <View style={styles.dayContainer}>
+              {timetable.lectures.map((lecture, index) => (
+                <View key={index} style={styles.classContainer}>
+                  <Text style={styles.subjectText}>
+                    Subject - <Text style={styles.subjectName}>{lecture.subject}</Text>
+                  </Text>
+                  <Text style={styles.timeText}>
+                    Time - <Text style={styles.timeRange}>{lecture.timeSlot}</Text>
+                  </Text>
+                  <Text style={styles.locationText}>
+                    Location - <Text style={styles.locationName}>{lecture.location}</Text>
+                  </Text>
+                  <Text style={styles.teacherText}>
+                    Teacher - <Text style={styles.teacherName}>{lecture.teacher}</Text>
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.dayContainer}>
+              <Text style={styles.noClassesText}>No classes scheduled for this day.</Text>
+            </View>
+          )}
+        </ScrollView>
       </View>
-
-      <ScrollView style={styles.contentContainer}>
-        {timetable?.lectures?.length > 0 ? (  
-          <View style={styles.dayContainer}>
-            {timetable.lectures.map((lecture, index) => (
-              <View key={index} style={styles.classContainer}>
-                <Text style={styles.subjectText}>
-                  Subject - <Text style={styles.subjectName}>{lecture.subject}</Text>
-                </Text>
-                <Text style={styles.timeText}>
-                  Time - <Text style={styles.timeRange}>{lecture.timeSlot}</Text>
-                </Text>
-                <Text style={styles.locationText}>
-                  Location - <Text style={styles.locationName}>{lecture.location}</Text>
-                </Text>
-                <Text style={styles.teacherText}>
-                  Teacher - <Text style={styles.teacherName}>{lecture.teacher}</Text>
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.dayContainer}>
-            <Text style={styles.noClassesText}>No classes scheduled for this day.</Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
   },
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#FF6F61',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+  },
+  backButton: {
+    padding: 5,
   },
   topBarTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFF',
+    flex: 1,
+    textAlign: 'center',
   },
-  editButton: {
-    padding: 5,
+  emptySpace: {
+    width: 24,
   },
   selectionView: {
     padding: 15,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#FFF',
     borderRadius: 10,
     margin: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   label: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#2C3E50',
   },
   selectionText: {
     fontSize: 16,
@@ -246,6 +294,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2994A',
     borderRadius: 10,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   subjectText: {
     fontSize: 18,
@@ -299,6 +352,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginVertical: 10,
+    color: '#2C3E50',
   },
   picker: {
     height: 50,

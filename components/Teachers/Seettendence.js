@@ -18,7 +18,6 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../config";
 import { useNavigation } from "@react-navigation/native";
 import { BarChart, PieChart } from "react-native-chart-kit";
-
 import { COURSES } from "../constant";
 
 const SeeAttendance = () => {
@@ -51,7 +50,6 @@ const SeeAttendance = () => {
         const data = doc.data();
         if (data.attendance) {
           data.attendance.forEach((record) => {
-            // Client-side filtering based on year and course
             if (
               (selectedYears.length === 0 || selectedYears.includes(record.year)) &&
               (selectedCourses.length === 0 || selectedCourses.includes(record.course))
