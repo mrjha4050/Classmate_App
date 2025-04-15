@@ -15,7 +15,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const ProfileScreen = () => {
   const auth = getAuth();
-  const [name, setName] = useState("");  
+  const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [role, setRole] = useState("");
@@ -31,7 +31,7 @@ const ProfileScreen = () => {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setName(data.name || "");  
+          setName(data.name || "");
           setPhoneNumber(data.phoneNumber || "");
           setNewEmail(data.email || "");
           setRole(data.role);
@@ -53,9 +53,6 @@ const ProfileScreen = () => {
               const teacherData = teacherDocSnap.data();
               setAdditionalInfo({
                 department: teacherData.department || "",
-                // subjects: Array.isArray(teacherData.subjects)
-                //   ? teacherData.subjects
-                  // : [],
               });
             }
           }
@@ -73,21 +70,50 @@ const ProfileScreen = () => {
   }, []);
 
   const handleUpdate = async () => {
-    if (!name || !phoneNumber || !newEmail) {
-      Alert.alert("Error", "Please fill in all required fields!");
+    if (!phoneNumber) {
+      Alert.alert("Error", "Phone number is required!");
       return;
     }
+
     setLoading(true);
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const updateData = {};
-      if (name) updateData.name = name;
-      if (phoneNumber) updateData.phoneNumber = phoneNumber;
-      if (newEmail && newEmail !== auth.currentUser.email) {
-        await updateEmail(auth.currentUser, newEmail);
-        updateData.email = newEmail;
+
+      // For all roles, update phoneNumber
+      updateData.phoneNumber = phoneNumber;
+
+      // For non-student roles, allow updating name and email
+      if (role !== "student") {
+        if (!name || !newEmail) {
+          Alert.alert("Error", "Name and email are required for non-students!");
+          setLoading(false);
+          return;
+        }
+        updateData.name = name;
+        if (newEmail && newEmail !== auth.currentUser.email) {
+          await updateEmail(auth.currentUser, newEmail);
+          updateData.email = newEmail;
+        }
       }
+
+      // Update the users collection
       await updateDoc(userDocRef, updateData);
+
+      // Update additional info based on role
+      if (role === "student") {
+        const studentDocRef = doc(db, "studentinfo", auth.currentUser.uid);
+        await updateDoc(studentDocRef, {
+          course: additionalInfo.course || "",
+          year: additionalInfo.year || "",
+        });
+      } else if (role === "teacher") {
+        const teacherDocRef = doc(db, "teachersinfo", auth.currentUser.uid);
+        await updateDoc(teacherDocRef, {
+          department: additionalInfo.department || "",
+        });
+      }
+
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to update profile");
@@ -117,10 +143,11 @@ const ProfileScreen = () => {
         <View style={styles.formContainer}>
           <Text style={styles.label}>Name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, role === "student" && styles.readOnlyInput]}
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
+            editable={role !== "student"} // Read-only for students
           />
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
@@ -132,32 +159,24 @@ const ProfileScreen = () => {
           />
           <Text style={styles.label}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, role === "student" && styles.readOnlyInput]}
             placeholder="Enter your new email"
             value={newEmail}
             onChangeText={setNewEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            editable={role !== "student"} // Read-only for students
           />
-          {role === "student" && (
+          {role === "teacher" && (
             <>
-              <Text style={styles.label}>Course</Text>
+              <Text style={styles.label}>Department</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your course"
-                value={additionalInfo.course || ""}
+                placeholder="Enter your department"
+                value={additionalInfo.department || ""}
                 onChangeText={(text) =>
-                  setAdditionalInfo({ ...additionalInfo, course: text })
-                }
-              />
-              <Text style={styles.label}>Year</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your year"
-                value={additionalInfo.year || ""}
-                onChangeText={(text) =>
-                  setAdditionalInfo({ ...additionalInfo, year: text })
+                  setAdditionalInfo({ ...additionalInfo, department: text })
                 }
               />
             </>
@@ -214,6 +233,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 10,
     fontSize: 16,
+  },
+  readOnlyInput: {
+    backgroundColor: "#f0f0f0", // Light gray background to indicate read-only
+    color: "#666", // Gray text to indicate non-editable
   },
   button: {
     backgroundColor: "#007BFF",

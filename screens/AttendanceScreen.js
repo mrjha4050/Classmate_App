@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import {
   View,
   Text,
@@ -26,8 +26,7 @@ import { COURSES } from "../components/constant";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-
-// Set up notification handler
+import { AuthContext } from "../AuthContext";  
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -58,11 +57,12 @@ const AttendanceScreen = () => {
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [tempStartTime, setTempStartTime] = useState(new Date());
   const [tempEndTime, setTempEndTime] = useState(new Date());
-  const [displayMode, setDisplayMode] = useState("tile"); // "tile" or "list"
+  const [displayMode, setDisplayMode] = useState("tile");
 
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext); // Access the authenticated user
 
-  // Fetch students with their roll numbers
+  // Fetch students with their roll numbers and sort by roll number
   const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
@@ -110,6 +110,12 @@ const AttendanceScreen = () => {
         })
       );
 
+      fetchedStudents.sort((a, b) => {
+        const rollA = parseInt(a.rollno, 10) || 0; // Convert to number, default to 0 if invalid
+        const rollB = parseInt(b.rollno, 10) || 0;
+        return rollA - rollB;
+      });
+
       setStudents(fetchedStudents);
       const initialAttendance = {};
       fetchedStudents.forEach((student) => {
@@ -125,7 +131,6 @@ const AttendanceScreen = () => {
     }
   }, [selectedClass, selectedDivision, selectedYear]);
 
-  // Fetch subjects based on selected class
   const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -185,22 +190,33 @@ const AttendanceScreen = () => {
       return;
     }
 
+    if (!user || !user.uid) {
+      Alert.alert("Error", "Teacher authentication required to save attendance.");
+      return;
+    }
+
     setNotificationLoading(true);
     try {
       const attendanceData = students.map((student) => ({
         date,
         rollNo: student.rollno,
-        name: student.studentname, 
+        name: student.studentname,
         subject: lectureName,
         status: attendance[student.id] || "N/A",
         year: student.year,
         course: student.course,
-        userId: student.userId,  
+        userId: student.userId,
       }));
 
       await addDoc(collection(db, "studentAttendance"), {
         attendance: attendanceData,
         timestamp: new Date().toISOString(),
+        teacherUserId: user.uid, // Add the teacher's userId
+        year: selectedYear,
+        course: selectedClass,
+        startTime,
+        endTime,
+        subject: lectureName,
       });
 
       Alert.alert(
@@ -240,7 +256,10 @@ const AttendanceScreen = () => {
                   : styles.absentTile,
               ]}
               onPress={() =>
-                handleAttendanceChange(item.id, attendance[item.id] === "P" ? "A" : "P")
+                handleAttendanceChange(
+                  item.id,
+                  attendance[item.id] === "P" ? "A" : "P"
+                )
               }
               disabled={loading || notificationLoading}
             >
@@ -373,7 +392,9 @@ const AttendanceScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.filterButton}
-          onPress={() => setDisplayMode(displayMode === "tile" ? "list" : "tile")}
+          onPress={() =>
+            setDisplayMode(displayMode === "tile" ? "list" : "tile")
+          }
           disabled={loading}
         >
           <Text style={styles.filterButtonText}>

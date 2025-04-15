@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
-  Image,
+  Image, 
   ActivityIndicator,
 } from "react-native";
 import { db } from "../config";
@@ -27,7 +27,7 @@ const TeacherHomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [todayLecturesCount, setTodayLecturesCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [timetableUpdate, setTimetableUpdate] = useState(null); // Single most recent update
+  const [timetableUpdate, setTimetableUpdate] = useState(null);
   const [loadingUpdates, setLoadingUpdates] = useState(false);
   const auth = getAuth();
 
@@ -58,7 +58,11 @@ const TeacherHomeScreen = () => {
 
         if (teacherInfoSnap.exists()) {
           const teacherData = teacherInfoSnap.data();
-          setUser((prevUser) => ({ ...prevUser, ...teacherData }));
+          setUser((prevUser) => ({
+            ...prevUser,
+            ...teacherData,
+            profilePhotoUrl: teacherData.profilePhotoUrl || null, // Ensure profilePhotoUrl is included
+          }));
         } else {
           console.error("Teacher details not found in teachersinfo.");
           Alert.alert("Error", "Teacher details not found!");
@@ -81,7 +85,9 @@ const TeacherHomeScreen = () => {
         ...doc.data(),
       }));
 
-      const sortedNotices = noticesList.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const sortedNotices = noticesList.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
       const recentNotices = sortedNotices.slice(0, 3);
       setNotices(recentNotices);
     } catch (error) {
@@ -159,7 +165,11 @@ const TeacherHomeScreen = () => {
     try {
       const mockActivities = [
         { id: "1", action: "Posted a notice", timestamp: "Today, 10:30 AM" },
-        { id: "2", action: "Marked attendance for Bsc.IT", timestamp: "Yesterday, 2:15 PM" },
+        {
+          id: "2",
+          action: "Marked attendance for Bsc.IT",
+          timestamp: "Yesterday, 2:15 PM",
+        },
       ];
       setRecentActivity(mockActivities);
     } catch (error) {
@@ -178,8 +188,8 @@ const TeacherHomeScreen = () => {
         const data = doc.data();
         const departmentMatch = data.department === user?.department;
         if (departmentMatch) {
-          const dateStr = doc.id.split("_").pop();  
-          const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`; // Convert to 2025-03-08
+          const dateStr = doc.id.split("_").pop();
+          const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
           updates.push({
             id: doc.id,
             date: formattedDate,
@@ -225,13 +235,26 @@ const TeacherHomeScreen = () => {
       <View style={styles.headerContainer}>
         <View style={styles.headerProfile}>
           <View style={styles.avatar}>
-            <MaterialIcons name="person" size={30} color="#fff" />
+            {user?.profilePhotoUrl ? (
+              <Image
+                source={{ uri: user.profilePhotoUrl }}
+                style={styles.profileImage}
+                onError={() =>
+                  setUser((prev) => ({ ...prev, profilePhotoUrl: null }))
+                } // Fallback to Material Icon on error
+              />
+            ) : (
+              <MaterialIcons name="person" size={30} color="#fff" />
+            )}
           </View>
           <Text style={styles.header}>
             Welcome, {user ? user.name : "Teacher"}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate("TeacherProfile")}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("TeacherProfile")}
+          accessibilityLabel="Go to teacher profile settings"
+        >
           <MaterialIcons name="settings" size={24} color="#2E86C1" />
         </TouchableOpacity>
       </View>
@@ -245,7 +268,9 @@ const TeacherHomeScreen = () => {
         {/* Today’s Lectures Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Lectures</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("TodaysLectures")}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("TodaysLectures")}
+          >
             <View style={[styles.card, styles.lectureCard]}>
               <MaterialIcons name="school" size={28} color="#2E86C1" />
               <View style={styles.lectureCardContent}>
@@ -267,7 +292,9 @@ const TeacherHomeScreen = () => {
                 <TouchableOpacity
                   key={notice.id}
                   style={styles.noticeItem}
-                  onPress={() => navigation.navigate("NoticeDetail", { notice })}
+                  onPress={() =>
+                    navigation.navigate("NoticeDetail", { notice })
+                  }
                 >
                   <Text style={styles.cardTitle}>{notice.title}</Text>
                   <Text style={styles.cardDate}>
@@ -310,7 +337,8 @@ const TeacherHomeScreen = () => {
           ) : timetableUpdate ? (
             <View style={[styles.card, styles.highlightedCard]}>
               <Text style={styles.cardTitle}>
-                Update on {new Date(timetableUpdate.date).toLocaleDateString()}
+                Update on{" "}
+                {new Date(timetableUpdate.date).toLocaleDateString()}
               </Text>
               <Text
                 style={styles.cardText}
@@ -321,27 +349,38 @@ const TeacherHomeScreen = () => {
               </Text>
               {timetableUpdate.lectures.length > 0 && (
                 <Text style={styles.cardText}>
-                  Lectures: {Array.isArray(timetableUpdate.lectures[0])
-                    ? timetableUpdate.lectures[0].map((l) => l.subject).join(", ")
-                    : timetableUpdate.lectures.map((l) => l.subject).join(", ")}
+                  Lectures:{" "}
+                  {Array.isArray(timetableUpdate.lectures[0])
+                    ? timetableUpdate.lectures[0]
+                        .map((l) => l.subject)
+                        .join(", ")
+                    : timetableUpdate.lectures
+                        .map((l) => l.subject)
+                        .join(", ")}
                 </Text>
               )}
               <TouchableOpacity
-                onPress={() => navigation.navigate("TimetableDetails", { timetableUpdate })}
+                onPress={() =>
+                  navigation.navigate("TimetableDetails", { timetableUpdate })
+                }
               >
                 <Text style={styles.viewToggleText}>View More</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.card}>
-              <Text style={styles.noDataText}>No recent timetable updates.</Text>
+              <Text style={styles.noDataText}>
+                No recent timetable updates.
+              </Text>
             </View>
           )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Attendance</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("AttendanceScreen")}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AttendanceScreen")}
+          >
             <View style={[styles.card, styles.actionCard]}>
               <MaterialIcons name="check-circle" size={24} color="#2E86C1" />
               <Text style={styles.cardText}>Mark/View Attendance</Text>
@@ -352,7 +391,9 @@ const TeacherHomeScreen = () => {
         {/* Notes Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("TeachersNotes")}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("TeachersNotes")}
+          >
             <View style={[styles.card, styles.actionCard]}>
               <MaterialIcons name="note" size={24} color="#2E86C1" />
               <Text style={styles.cardText}>View Notes</Text>
@@ -448,6 +489,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   header: {
     fontSize: 26,

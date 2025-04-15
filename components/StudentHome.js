@@ -9,11 +9,12 @@ import {
   Alert,
   RefreshControl,
   Dimensions,
+  Image,
 } from "react-native";
 import { db } from "../config";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
@@ -32,33 +33,41 @@ const HomeScreen = () => {
       const userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
+        console.log("User document does not exist for UID:", auth.currentUser.uid);
         Alert.alert("Error", "No such user!");
         return;
       }
 
       const userName = userDocSnap.data().name;
       const userId = userDocSnap.id;
-
       const studentId = userDocSnap.data().studentId || auth.currentUser.uid;
+
+      console.log("Fetching student details for studentId:", studentId);
+
       const studentDocRef = doc(db, "students", studentId);
       const studentDocSnap = await getDoc(studentDocRef);
 
       if (studentDocSnap.exists()) {
         const studentDetails = studentDocSnap.data();
+        console.log("Student details fetched:", studentDetails);
         setUser({
           name: userName,
           userId: userId,
-          rollNumber: studentDetails.rollNo,
-          course: studentDetails.course,
-          year: studentDetails.year,
-          division: studentDetails.division,
-          phoneNumber: studentDetails.phonenumber,
-          // userId: student.studentid,  
+          rollNumber: studentDetails.rollno || "N/A", // Ensure fallback to "N/A"
+          course: studentDetails.course || "N/A",
+          year: studentDetails.year || "N/A",
+          division: studentDetails.division || "N/A",
+          phoneNumber: studentDetails.phonenumber || "N/A",
+          profilePhotoUrl: studentDetails.profilePhotoUrl || null, // Ensure null if not present
         });
       } else {
+        console.log("Student document does not exist for studentId:", studentId);
         setUser({
           name: userName,
           userId: userId,
+          rollNumber: "N/A",
+          course: "N/A",
+          profilePhotoUrl: null,
         });
         Alert.alert("Warning", "Student details not found!");
       }
@@ -146,10 +155,10 @@ const HomeScreen = () => {
   );
 
   const quickLinks = [
-    { name: "Notices", icon: "notifications", screen: "NoticePage" },
-    { name: "Timetable", icon: "calendar-today", screen: "ViewTimeTable" },
-    { name: "Attendance", icon: "check-circle", screen: "StudentAttendance" },
-    { name: "Notes", icon: "note", screen: "TeachersNotes" },
+    { name: "Notices", icon: "notifications-outline", screen: "NoticePage" },
+    { name: "Timetable", icon: "calendar-outline", screen: "ViewTimeTable" },
+    { name: "Attendance", icon: "checkmark-circle-outline", screen: "StudentAttendance" },
+    { name: "Notes", icon: "document-text-outline", screen: "TeachersNotes" },
   ];
 
   const renderQuickLink = ({ item }) => (
@@ -158,7 +167,7 @@ const HomeScreen = () => {
       onPress={() => navigation.navigate(item.screen)}
       activeOpacity={0.8}
     >
-      <MaterialIcons name={item.icon} size={28} color="#FF6F61" />
+      <Ionicons name={item.icon} size={28} color="#FF6F61" />
       <Text style={styles.quickLinkText}>{item.name}</Text>
     </TouchableOpacity>
   );
@@ -173,7 +182,7 @@ const HomeScreen = () => {
             </Text>
             <Text style={styles.subHeaderText}>
               {user
-                ? `${user.course || "N/A"} | Roll No: ${user.rollNumber || "N/A"}`
+                ? `${user.course} | Roll No: ${user.rollNumber}`
                 : "Fetching details..."}
             </Text>
           </View>
@@ -181,7 +190,18 @@ const HomeScreen = () => {
             style={styles.profileButton}
             onPress={() => navigation.navigate("ProfileScreen")}
           >
-            <MaterialIcons name="person" size={28} color="#FFF" />
+            {user?.profilePhotoUrl ? (
+              <Image
+                source={{ uri: user.profilePhotoUrl }}
+                style={styles.profileImage}
+                onError={() => {
+                  console.log("Failed to load profile image:", user.profilePhotoUrl);
+                  setUser((prev) => ({ ...prev, profilePhotoUrl: null }));
+                }}
+              />
+            ) : (
+              <MaterialIcons name="person" size={28} color="#FFF" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -309,6 +329,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     padding: 10,
     borderRadius: 50,
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   section: {
     paddingHorizontal: 20,

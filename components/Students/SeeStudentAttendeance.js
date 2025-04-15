@@ -10,12 +10,13 @@ import {
   Modal,
   Dimensions,
   ScrollView,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../config";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { getAuth } from "firebase/auth";
+import { AuthContext } from "../../AuthContext";
 
 const SeestudentAttendence = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -34,12 +35,13 @@ const SeestudentAttendence = () => {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        const studentId = userData.studentId || auth.currentUser.uid; // Default to UID if studentId is not present
+        const studentId = userData.studentId || auth.currentUser.uid;
         setUser({
           name: userData.name,
           studentId: studentId,
+          userId: auth.currentUser.uid,  
         });
-        console.log("Fetched User Details:", { name: userData.name, studentId });
+        console.log("Fetched User Details:", { name: userData.name, studentId, userId: auth.currentUser.uid });
       } else {
         Alert.alert("Error", "User details not found!");
       }
@@ -64,20 +66,27 @@ const SeestudentAttendence = () => {
       const attendanceRef = collection(db, "studentAttendance");
       const querySnapshot = await getDocs(attendanceRef);
 
-      console.log("Logged-in Student ID:", user.studentId);
+      console.log("Logged-in User ID:", user.userId);
 
       const userRecords = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        console.log("Checking Attendance Data:", data);
-        // Match based on userId
-        if (data.userId === user.studentId) {
-          userRecords.push({
-            subject: data.subject,
-            date: data.date,
-            status: data.status,
-            studentId: data.userId,
-            name: data.name, // Include name for verification
+        console.log("Checking Attendance Document:", data);
+
+        if (data.attendance && Array.isArray(data.attendance)) {
+          data.attendance.forEach((record) => {
+            if (record.userId === user.userId) {
+              userRecords.push({
+                subject: record.subject,
+                date: record.date,
+                status: record.status,
+                studentId: record.userId,
+                name: record.name,
+                rollNo: record.rollNo,
+                course: record.course,
+                year: record.year,
+              });
+            }
           });
         }
       });

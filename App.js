@@ -55,7 +55,7 @@ export default function App() {
             component={SeestudentAttendence}
           />
           <Stack.Screen name="NoticePage" component={NoticePage} />
-          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+        <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
           <Stack.Screen name="SeeAttendance" component={SeeAttendance} />
           <Stack.Screen
             name="TimetableDetails"
