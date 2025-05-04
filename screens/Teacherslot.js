@@ -1,466 +1,234 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
   View,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  StatusBar
 } from "react-native";
 import { db } from "../config";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { format, addDays, parseISO } from "date-fns";
-import { Picker } from "@react-native-picker/picker";
+import { doc, getDoc } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
-import { YEARS, COURSES } from "../components/constant";
 
-const Teacherslot = ({ navigation }) => {
+const Teacherslot = () => {
   const [teachers, setTeachers] = useState([]);
-  const [allTeachers, setAllTeachers] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("Bsc.IT");
-  const [selectedYear, setSelectedYear] = useState("All Years");
-  const [days, setDays] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(format(new Date(), "EEEE"));
-  const [loading, setLoading] = useState(false);
-  const [daysWithData, setDaysWithData] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedDay, setSelectedDay] = useState("Friday"); // Default to Friday as per your example
 
-  const excludedTeachers = ["Jaymala", "Anshika"];
-  const startHour = 7; // 7:00 AM
-  const endHour = 14; // 2:00 PM
+  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  const generateDays = () => {
-    const today = new Date();
-    const nextDays = [];
-    for (let i = 0; i < 7; i++) {
-      const currentDay = addDays(today, i);
-      nextDays.push({
-        date: format(currentDay, "yyyy-MM-dd"),
-        day: format(currentDay, "EEEE"),
-      });
-    }
-    return nextDays;
-  };
-
-  const fetchAllTeachers = async () => {
+  const fetchTeacherSlots = async () => {
     try {
-      const teachersRef = collection(db, "teachersinfo");
-      const teachersSnap = await getDocs(teachersRef);
-      const teacherList = [];
-      teachersSnap.forEach((doc) => {
-        const data = doc.data();
-        if (data.department === selectedCourse && !excludedTeachers.includes(data.name)) {
-          teacherList.push({ name: data.name });
-        }
-      });
-      console.log("All teachers for", selectedCourse, ":", teacherList);
-      setAllTeachers(teacherList);
-    } catch (error) {
-      console.error("Error fetching all teachers:", error);
-      Alert.alert("Error", "Failed to fetch teachers list.");
-    }
-  };
+      setLoading(true);
+      const teacherSlots = {};
 
-  const fetchAllLecturesForDay = async (day) => {
-    try {
-      const allLectures = [];
-      const years = ["First Year", "Second Year", "Third Year"];
-      for (const year of years) {
-        const path = `timetable/${selectedCourse}/${year}/${day}`;
-        console.log("Fetching lectures from path:", path);
-        const dayDocRef = doc(db, path);
-        const docSnap = await getDoc(dayDocRef);
+      // Get lectures for the selected day
+      const dayRef = doc(db, "timetable/Bsc.IT/Third Year", selectedDay);
+      const daySnap = await getDoc(dayRef);
 
-        if (docSnap.exists()) {
-          const lectures = docSnap.data().lectures || [];
-          console.log(`Lectures for ${year} on ${day}:`, lectures);
-          allLectures.push(...lectures);
-        } else {
-          console.log(`No document found at path: ${path}`);
-        }
-      }
-      console.log("All lectures for", day, ":", allLectures);
-      return allLectures;
-    } catch (error) {
-      console.error("Error fetching lectures:", error);
-      Alert.alert("Error", `Failed to fetch teacher availability: ${error.message}`);
-      return [];
-    }
-  };
-
-  const checkDaysWithData = async () => {
-    const daysSet = new Set();
-    const generatedDays = generateDays();
-    const years = ["First Year", "Second Year", "Third Year"];
-    for (const day of generatedDays) {
-      for (const year of years) {
-        const path = `timetable/${selectedCourse}/${year}/${day.day}`;
-        const dayDocRef = doc(db, path);
-        const docSnap = await getDoc(dayDocRef);
-        if (docSnap.exists()) {
-          daysSet.add(day.day);
-          break; // Exit loop once data is found for this day
-        }
-      }
-    }
-    console.log("Days with data:", Array.from(daysSet));
-    setDaysWithData(daysSet);
-  };
-
-  const determineTeacherFreeSlots = (lectures) => {
-    // Initialize slots for all teachers as free
-    const teacherSlots = {};
-    allTeachers.forEach((teacher) => {
-      teacherSlots[teacher.name] = Array.from({ length: endHour - startHour }, () => true);
-    });
-
-    // Mark slots as occupied based on lectures
-    lectures.forEach((lecture) => {
-      const { teacher, timeSlot } = lecture;
-
-      if (!teacher || excludedTeachers.includes(teacher)) {
-        return;
-      }
-
-      const [start, end] = timeSlot.includes(" to ")
-        ? timeSlot.split(" to ")
-        : timeSlot.split(" - ");
-      const startTimeStr = start.replace(".", ":");
-      const endTimeStr = end.replace(".", ":");
-      let startTime, endTime;
-
-      try {
-        startTime = parseInt(startTimeStr.split(":")[0]);
-        endTime = parseInt(endTimeStr.split(":")[0]);
-      } catch (error) {
-        console.error(`Error parsing timeSlot for lecture: ${JSON.stringify(lecture)}`, error);
-        return;
-      }
-
-      if (teacherSlots[teacher]) {
-        for (let hour = startTime; hour < endTime; hour++) {
-          if (hour - startHour >= 0 && hour - startHour < endHour - startHour) {
-            teacherSlots[teacher][hour - startHour] = false;
+      if (daySnap.exists()) {
+        const lectures = daySnap.data().lectures || [];
+        
+        // Organize lectures by teacher
+        lectures.forEach(lecture => {
+          if (!lecture.teacher) return;
+          
+          if (!teacherSlots[lecture.teacher]) {
+            teacherSlots[lecture.teacher] = [];
           }
-        }
+          teacherSlots[lecture.teacher].push(lecture.timeSlot);
+        });
       }
-    });
 
-    const freeSlots = {};
-    Object.keys(teacherSlots).forEach((teacher) => {
-      freeSlots[teacher] = teacherSlots[teacher]
-        .map((isFree, index) => {
-          if (isFree) {
-            return `${index + startHour}:00 - ${index + startHour + 1}:00`;
-          }
-          return null;
-        })
-        .filter((slot) => slot !== null);
+      // Convert to array format for FlatList
+      const teacherData = Object.keys(teacherSlots).map(teacher => ({
+        name: teacher,
+        slots: teacherSlots[teacher]
+      }));
 
-      // Include teachers with at least one free slot
-      if (freeSlots[teacher].length === 0) {
-        delete freeSlots[teacher]; // Remove if no free slots
-      }
-    });
-
-    return freeSlots;
-  };
-
-  const fetchTeacherAvailability = useCallback(async (day) => {
-    setLoading(true);
-    try {
-      const lectures = await fetchAllLecturesForDay(day);
-      const teacherFreeSlots = determineTeacherFreeSlots(lectures);
-      const teacherData = Object.entries(teacherFreeSlots)
-        .map(([teacher, freeSlots]) => ({ teacher, freeSlots }))
-        .sort((a, b) => a.teacher.localeCompare(b.teacher)); // Sort alphabetically
-      console.log("Teachers with free slots on", day, ":", teacherData);
       setTeachers(teacherData);
     } catch (error) {
-      console.error("Error in fetchTeacherAvailability:", error);
-      Alert.alert("Error", "Failed to fetch teacher availability.");
+      console.error("Error fetching teacher slots:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [selectedCourse, allTeachers]);
-
-  useEffect(() => {
-    const generatedDays = generateDays();
-    setDays(generatedDays);
-
-    const todayDay = format(new Date(), "EEEE");
-    const isValidDay = generatedDays.some((d) => d.day === todayDay);
-    setSelectedDay(isValidDay ? todayDay : generatedDays[0].day);
-
-    fetchAllTeachers();
-    checkDaysWithData();
-  }, [selectedCourse]);
-
-  useEffect(() => {
-    if (allTeachers.length > 0) {
-      fetchTeacherAvailability(selectedDay);
-    }
-  }, [selectedDay, allTeachers, fetchTeacherAvailability]);
-
-  const handleDaySelection = (day) => {
-    setSelectedDay(day);
   };
 
-  const renderTeacherInfo = ({ item }) => (
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchTeacherSlots();
+  };
+
+  useEffect(() => {
+    fetchTeacherSlots();
+  }, [selectedDay]);
+
+  const renderTeacher = ({ item }) => (
     <View style={styles.teacherCard}>
       <View style={styles.teacherHeader}>
-        <MaterialIcons name="person" size={24} color="#2E86C1" />
-        <Text style={styles.teacherName}>{item.teacher}</Text>
+        <MaterialIcons name="person" size={24} color="#3b4cca" />
+        <Text style={styles.teacherName}>{item.name}</Text>
       </View>
-      <Text style={styles.freeSlotsTitle}>Free Slots:</Text>
-      {item.freeSlots.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {item.freeSlots.map((slot, index) => (
+      
+      <Text style={styles.slotsTitle}>Time Slots:</Text>
+      {item.slots.length > 0 ? (
+        <View style={styles.slotsContainer}>
+          {item.slots.map((slot, index) => (
             <View key={index} style={styles.slotBlock}>
               <Text style={styles.slotText}>{slot}</Text>
             </View>
           ))}
-        </ScrollView>
+        </View>
       ) : (
-        <Text style={styles.noSlotsText}>No free slots available.</Text>
+        <Text style={styles.noSlotsText}>No slots scheduled</Text>
       )}
     </View>
   );
 
-  const renderDayItem = ({ item }) => {
-    if (!item || !item.day || !item.date) return null;
-    const isSelected = item.day === selectedDay;
-    const hasData = daysWithData.has(item.day);
+  const renderDayButton = (day) => (
+    <TouchableOpacity
+      key={day}
+      style={[
+        styles.dayButton,
+        selectedDay === day && styles.selectedDayButton
+      ]}
+      onPress={() => setSelectedDay(day)}
+    >
+      <Text style={[
+        styles.dayButtonText,
+        selectedDay === day && styles.selectedDayButtonText
+      ]}>
+        {day.substring(0, 3)}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  if (loading && !refreshing) {
     return (
-      <TouchableOpacity
-        onPress={() => handleDaySelection(item.day)}
-        style={[styles.dayCard, isSelected && styles.selectedDayCard]}
-      >
-        {hasData && (
-          <View style={styles.dataBadge}>
-            <MaterialIcons name="schedule" size={12} color="#FFFFFF" />
-          </View>
-        )}
-        <Text style={[styles.dayLabel, isSelected && styles.selectedDayLabel]}>
-          {format(parseISO(item.date), "MMM")}
-        </Text>
-        <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>
-          {format(parseISO(item.date), "dd")}
-        </Text>
-        <Text style={[styles.daySubText, isSelected && styles.selectedDaySubText]}>
-          {item.day}
-        </Text>
-      </TouchableOpacity>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b4cca" />
+        <Text>Loading teacher schedules...</Text>
+      </SafeAreaView>
     );
-  };
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color="#2E86C1" />
-        </TouchableOpacity>
-        <Text style={styles.header}>Teacherslot</Text>
-      </View>
+    <>
+      <StatusBar backgroundColor="#3b4cca" barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Teacher Schedules</Text>
+          <Text style={styles.headerSubtitle}>{selectedDay}</Text>
+        </View>
 
-      <FlatList
-        ListHeaderComponent={
-          <>
-            <Text style={styles.title}>Teacher Availability</Text>
+        {/* Day selector */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daySelector}
+        >
+          {daysOfWeek.map(renderDayButton)}
+        </ScrollView>
 
-            {/* Course and Year Filters */}
-            <View style={styles.filterContainer}>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedCourse}
-                  onValueChange={(itemValue) => {
-                    setSelectedCourse(itemValue);
-                    fetchAllTeachers();
-                    checkDaysWithData();
-                  }}
-                  style={styles.picker}
-                >
-                  {COURSES.map((course, index) => (
-                    <Picker.Item key={index} label={course} value={course} />
-                  ))}
-                </Picker>
-              </View>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedYear}
-                  onValueChange={(itemValue) => {
-                    setSelectedYear(itemValue);
-                    fetchAllTeachers();
-                    checkDaysWithData();
-                  }}
-                  style={styles.picker}
-                >
-                  {["All Years", "First Year", "Second Year", "Third Year"].map((year, index) => (
-                    <Picker.Item key={index} label={year} value={year} />
-                  ))}
-                </Picker>
-              </View>
+        <FlatList
+          data={teachers}
+          renderItem={renderTeacher}
+          keyExtractor={(item) => item.name}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No teacher data available for {selectedDay}</Text>
             </View>
-
-            {/* Day Selector */}
-            <FlatList
-              data={days}
-              renderItem={renderDayItem}
-              keyExtractor={(item) => item.date}
-              horizontal={true}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.daySelector}
+          }
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#3b4cca"]}
             />
-          </>
-        }
-        data={teachers}
-        keyExtractor={(item) => item.teacher}
-        renderItem={renderTeacherInfo}
-        contentContainerStyle={styles.teacherList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No teachers available on {selectedDay}.
-            </Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => handleDaySelection("Friday")}
-            >
-              <Text style={styles.retryButtonText}>Try Friday</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        ListFooterComponent={
-          loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#2E86C1" />
-            </View>
-          ) : null
-        }
-      />
-    </SafeAreaView>
+          }
+        />
+      </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-    backgroundColor: "#F5F7FA",
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7E9",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  backButton: {
-    padding: 8,
+    flex: 2,
+    backgroundColor: '#F5F7FA',
   },
   header: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#2C3E50",
+    backgroundColor: '#2E86C1',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 5,
+    opacity: 0.9,
+  },
+  loadingContainer: {
     flex: 1,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#2C3E50",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  pickerContainer: {
-    flex: 1,
-    marginHorizontal: 5,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7E9",
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    color: "#2C3E50",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: '#f5f5f5',
   },
   daySelector: {
     paddingVertical: 10,
+    paddingHorizontal: 5,
+    backgroundColor: '#f5f5f5',
   },
-  dayCard: {
-    padding: 12,
+  dayButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     marginHorizontal: 5,
-    borderRadius: 15,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7E9",
-    width: 80,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    position: "relative",
+    borderRadius: 20,
+    backgroundColor: "#e6e6e6",
   },
-  selectedDayCard: {
-    backgroundColor: "#2E86C1",
-    borderColor: "#2E86C1",
-    borderWidth: 2,
+  selectedDayButton: {
+    backgroundColor: "#3b4cca",
   },
-  dataBadge: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "#28a745",
-    borderRadius: 10,
-    padding: 3,
+  dayButtonText: {
+    fontSize: 16,
+    color: "#555",
+    fontWeight: '500',
   },
-  dayLabel: {
-    fontSize: 14,
-    color: "#7F8C8D",
-  },
-  selectedDayLabel: {
+  selectedDayButtonText: {
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontWeight: '600',
   },
-  dayText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#2C3E50",
-  },
-  selectedDayText: {
-    color: "#FFFFFF",
-  },
-  daySubText: {
-    fontSize: 12,
-    color: "#7F8C8D",
-  },
-  selectedDaySubText: {
-    color: "#FFFFFF",
-  },
-  teacherList: {
-    paddingBottom: 20,
+  listContainer: {
+    padding: 15,
+    paddingBottom: 30,
   },
   teacherCard: {
     backgroundColor: "#FFFFFF",
-    padding: 16,
+    padding: 18,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -471,66 +239,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 10,
   },
   teacherName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#2C3E50",
+    color: "#333",
     marginLeft: 10,
   },
-  freeSlotsTitle: {
+  slotsTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#2C3E50",
-    marginBottom: 8,
+    color: "#555",
+    marginBottom: 10,
+  },
+  slotsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   slotBlock: {
-    padding: 10,
-    marginHorizontal: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 10,
+    marginBottom: 10,
     borderRadius: 8,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#e9f0ff",
     borderWidth: 1,
-    borderColor: "#BBDEFB",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: "#d0d9ff",
   },
   slotText: {
     fontSize: 14,
-    color: "#2E86C1",
+    color: "#3b4cca",
     fontWeight: "500",
   },
   noSlotsText: {
     fontSize: 14,
-    color: "#7F8C8D",
+    color: "#888",
     fontStyle: "italic",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 30,
   },
   emptyText: {
     fontSize: 16,
-    color: "#7F8C8D",
+    color: "#666",
     textAlign: "center",
-    marginBottom: 10,
-  },
-  retryButton: {
-    backgroundColor: "#2E86C1",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    lineHeight: 24,
   },
 });
 

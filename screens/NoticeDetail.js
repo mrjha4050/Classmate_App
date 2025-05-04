@@ -3,226 +3,191 @@ import {
   SafeAreaView,
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
   ScrollView,
   Image,
+  TouchableOpacity,
+  Linking,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { getAuth, updateEmail } from "firebase/auth";
 import { db } from "../config";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { useRoute } from "@react-navigation/native";
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 
-const ProfileScreen = () => {
-  const auth = getAuth();
-  const [name, setName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [role, setRole] = useState("");
-  const [additionalInfo, setAdditionalInfo] = useState({});
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
+const NoticeDetail = () => {
+  const route = useRoute();
+  const { noticeId } = route.params;
+  const [notice, setNotice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
+    const fetchNoticeDetails = async () => {
       try {
-        const userDocRef = doc(db, "users", auth.currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
+        if (!noticeId) {
+          throw new Error("No notice ID provided");
+        }
+
+        const noticeDocRef = doc(db, "notices", noticeId);
+        const docSnap = await getDoc(noticeDocRef);
 
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          setName(data.name || "");
-          setPhoneNumber(data.phoneNumber || "");
-          setNewEmail(data.email || "");
-          setRole(data.role);
-
-          if (data.role === "student") {
-            const studentDocRef = doc(db, "studentinfo", auth.currentUser.uid);
-            const studentDocSnap = await getDoc(studentDocRef);
-            if (studentDocSnap.exists()) {
-              const studentData = studentDocSnap.data();
-              setAdditionalInfo({
-                course: studentData.course || "",
-                year: studentData.year || "",
-              });
-              setProfilePhotoUrl(studentData.profilePhotoUrl || null);
-            }
-          } else if (data.role === "teacher") {
-            const teacherDocRef = doc(db, "teachersinfo", auth.currentUser.uid);
-            const teacherDocSnap = await getDoc(teacherDocRef);
-            if (teacherDocSnap.exists()) {
-              const teacherData = teacherDocSnap.data();
-              setAdditionalInfo({
-                department: teacherData.department || "",
-              });
-              setProfilePhotoUrl(teacherData.profilePhotoUrl || null);
-            }
-          }
+          const noticeData = docSnap.data();
+          // Process the notice data according to your Firestore structure
+          const processedNotice = {
+            id: docSnap.id,
+            title: noticeData.title || "No Title",
+            content: noticeData.content || "No content available",
+            noticeBy: noticeData.noticeBy || "Unknown sender",
+            category: noticeData.category || "general",
+            createdAt: noticeData.createdAt || null,
+            files: noticeData.files || null,
+            readBy: noticeData.readBy || [],
+          };
+          setNotice(processedNotice);
         } else {
-          Alert.alert("Error", "No such user!");
+          setError("Notice not found");
         }
-      } catch (error) {
-        Alert.alert("Error", "Error fetching user data");
-        console.error("Error fetching user data:", error);
+      } catch (err) {
+        console.error("Error fetching notice:", err);
+        setError(err.message || "Failed to load notice");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchUserData();
-  }, []);
+    fetchNoticeDetails();
+  }, [noticeId]);
 
-  const handleUpdate = async () => {
-    if (!phoneNumber) {
-      Alert.alert("Error", "Phone number is required!");
-      return;
+  const toggleExpand = () => {
+    setExpanded(!expanded);
+  };
+
+  const handleOpenFile = (fileUrl) => {
+    if (fileUrl) {
+      Linking.canOpenURL(fileUrl)
+        .then((supported) => {
+          if (supported) {
+            return Linking.openURL(fileUrl);
+          } else {
+            console.log("Don't know how to open URI: " + fileUrl);
+            Alert.alert("Error", "No app available to open this file");
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to open URL:", err);
+          Alert.alert("Error", "Could not open file");
+        });
     }
+  };
 
-    setLoading(true);
+  const formatDate = (dateString) => {
+    if (!dateString) return "No date";
     try {
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const updateData = {};
-
-      // For all roles, update phoneNumber
-      updateData.phoneNumber = phoneNumber;
-
-      // For non-student roles, allow updating name and email
-      if (role !== "student") {
-        if (!name || !newEmail) {
-          Alert.alert("Error", "Name and email are required for non-students!");
-          setLoading(false);
-          return;
-        }
-        updateData.name = name;
-        if (newEmail && newEmail !== auth.currentUser.email) {
-          await updateEmail(auth.currentUser, newEmail);
-          updateData.email = newEmail;
-        }
-      }
-
-      // Update the users collection
-      await updateDoc(userDocRef, updateData);
-
-      // Update additional info based on role
-      if (role === "student") {
-        const studentDocRef = doc(db, "studentinfo", auth.currentUser.uid);
-        await updateDoc(studentDocRef, {
-          course: additionalInfo.course || "",
-          year: additionalInfo.year || "",
-        });
-      } else if (role === "teacher") {
-        const teacherDocRef = doc(db, "teachersinfo", auth.currentUser.uid);
-        await updateDoc(teacherDocRef, {
-          department: additionalInfo.department || "",
-        });
-      }
-
-      Alert.alert("Success", "Profile updated successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to update profile");
-      console.error("Error updating profile:", error);
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (err) {
+      console.error("Error formatting date:", err);
+      return "Invalid date";
     }
-    setLoading(false);
   };
 
-  const getInitials = (name) => {
-    if (!name) return "";
-    const initials = name
-      .split(" ")
-      .map((word) => word[0])
-      .join("");
-    return initials.toUpperCase();
-  };
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#3b4cca" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Text style={styles.errorText}>{error}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!notice) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Text>Notice not found</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.avatarContainer}>
-          {profilePhotoUrl ? (
-            <Image
-              source={{ uri: profilePhotoUrl }}
-              style={styles.avatar}
-              onError={() => {
-                console.log("Failed to load profile image:", profilePhotoUrl);
-                setProfilePhotoUrl(null);
-              }}
-            />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.initials}>{getInitials(name)}</Text>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.header}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{notice.category}</Text>
+          </View>
+          <Text style={styles.title}>{notice.title}</Text>
+          <Text style={styles.date}>{formatDate(notice.createdAt)}</Text>
+        </View>
+
+        <View style={styles.senderContainer}>
+          <FontAwesome name="user-circle" size={16} color="#666" />
+          <Text style={styles.senderLabel}>Posted by: </Text>
+          <Text style={styles.sender}>{notice.noticeBy}</Text>
+        </View>
+
+        <View style={styles.contentContainer}>
+          <Text
+            style={styles.content}
+            numberOfLines={expanded ? undefined : 5}
+          >
+            {notice.content}
+          </Text>
+          {notice.content.length > 200 && (
+            <TouchableOpacity onPress={toggleExpand}>
+              <Text style={styles.readMore}>
+                {expanded ? "Read Less" : "Read More"}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            style={[styles.input, role === "student" && styles.readOnlyInput]}
-            placeholder="Enter your name"
-            value={name}
-            onChangeText={setName}
-            editable={role !== "student"} // Read-only for students
-          />
-          <Text style={styles.label}>Phone Number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your phone number"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
-          />
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, role === "student" && styles.readOnlyInput]}
-            placeholder="Enter your new email"
-            value={newEmail}
-            onChangeText={setNewEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            editable={role !== "student"} // Read-only for students
-          />
-          {role === "student" && (
-            <>
-              <Text style={styles.label}>Course</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your course"
-                value={additionalInfo.course || ""}
-                onChangeText={(text) =>
-                  setAdditionalInfo({ ...additionalInfo, course: text })
-                }
-              />
-              <Text style={styles.label}>Year</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your year"
-                value={additionalInfo.year || ""}
-                onChangeText={(text) =>
-                  setAdditionalInfo({ ...additionalInfo, year: text })
-                }
-              />
-            </>
-          )}
-          {role === "teacher" && (
-            <>
-              <Text style={styles.label}>Department</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your department"
-                value={additionalInfo.department || ""}
-                onChangeText={(text) =>
-                  setAdditionalInfo({ ...additionalInfo, department: text })
-                }
-              />
-            </>
-          )}
-          <TouchableOpacity style={styles.button} onPress={handleUpdate}>
-            <Text style={styles.buttonText}>
-              {loading ? "Updating..." : "Update Profile"}
-            </Text>
-          </TouchableOpacity>
+        {notice.files && (
+          <View style={styles.filesContainer}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            {typeof notice.files === "string" ? (
+              <TouchableOpacity
+                style={styles.fileItem}
+                onPress={() => handleOpenFile(notice.files)}
+              >
+                <MaterialIcons name="attach-file" size={20} color="#3b4cca" />
+                <Text style={styles.fileText}>View Attachment</Text>
+              </TouchableOpacity>
+            ) : (
+              notice.files.map((file, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.fileItem}
+                  onPress={() => handleOpenFile(file)}
+                >
+                  <MaterialIcons name="attach-file" size={20} color="#3b4cca" />
+                  <Text style={styles.fileText}>Attachment {index + 1}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+
+        <View style={styles.readByContainer}>
+          <Text style={styles.sectionTitle}>
+            Read by {notice.readBy.length} people
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -232,59 +197,104 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
   },
-  avatarContainer: {
-    alignItems: "center",
-    marginVertical: 20,
+  scrollContainer: {
+    padding: 20,
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#3b4cca",
+  center: {
     justifyContent: "center",
     alignItems: "center",
   },
-  initials: {
-    color: "white",
-    fontSize: 36,
+  header: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 15,
+  },
+  categoryBadge: {
+    backgroundColor: "#e1f5fe",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  categoryText: {
+    color: "#0288d1",
+    fontSize: 12,
     fontWeight: "bold",
+    textTransform: "capitalize",
   },
-  formContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
-    margin: 20,
-    borderRadius: 10,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 16,
+  title: {
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 5,
+    color: "#333",
   },
-  input: {
-    borderColor: "#ddd",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 15,
-    padding: 10,
-    fontSize: 16,
+  date: {
+    fontSize: 14,
+    color: "#666",
   },
-  readOnlyInput: {
-    backgroundColor: "#f0f0f0",  
-    color: "#666",  
-  },
-  button: {
-    backgroundColor: "#007BFF",
-    padding: 15,
-    borderRadius: 5,
+  senderContainer: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 20,
+    flexWrap: "wrap",
   },
-  buttonText: {
-    color: "#fff",
+  senderLabel: {
+    color: "#666",
+    marginLeft: 5,
+    marginRight: 5,
+  },
+  sender: {
     fontWeight: "bold",
+    color: "#333",
+  },
+  contentContainer: {
+    marginBottom: 25,
+  },
+  content: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#444",
+  },
+  readMore: {
+    color: "#3b4cca",
+    marginTop: 5,
+    fontWeight: "bold",
+  },
+  filesContainer: {
+    marginBottom: 20,
+  },
+  fileItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  fileText: {
+    marginLeft: 10,
+    color: "#3b4cca",
+  },
+  sectionTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 10,
+    color: "#333",
+  },
+  readByContainer: {
+    marginBottom: 20,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16,
+    textAlign: "center",
+    padding: 20,
   },
 });
 
-export default ProfileScreen;
+export default NoticeDetail;

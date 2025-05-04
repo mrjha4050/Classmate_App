@@ -24,9 +24,9 @@ import CreateAssignment from "./components/Teachers/CreateAssignment";
 import SeeAttendance from "./components/Teachers/Seettendence";
 import AssignmentDetail from "./components/Students/AssignmentDetail";
 import TimetableDetailsScreen from "./components/Daytimetable";
-
 import StudentAssignments from "./screens/StudentAssignment";
 import SeestudentAttendence from "./components/Students/SeeStudentAttendeance";
+// import TeacherViewTimetable from "./components/Teachers/Teacherviewtimetable";
 
 const Stack = createStackNavigator();
 
@@ -54,14 +54,22 @@ export default function App() {
             name="StudentAttendance"
             component={SeestudentAttendence}
           />
+{/* 
+          <Stack.Screen
+          name = "TeacherViewTimetable"
+          component={TeacherViewTimetable}
+            /> */}
+
           <Stack.Screen name="NoticePage" component={NoticePage} />
-        <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
           <Stack.Screen name="SeeAttendance" component={SeeAttendance} />
+
           <Stack.Screen
             name="TimetableDetails"
             component={TimetableDetailsScreen}
             options={{ headerShown: false }}
           />
+
           <Stack.Screen
             name="AttendanceScreen"
             component={AttendanceScreen}

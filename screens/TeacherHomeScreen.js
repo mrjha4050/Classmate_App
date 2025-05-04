@@ -292,9 +292,7 @@ const TeacherHomeScreen = () => {
                 <TouchableOpacity
                   key={notice.id}
                   style={styles.noticeItem}
-                  onPress={() =>
-                    navigation.navigate("NoticeDetail", { notice })
-                  }
+                  onPress={() => navigation.navigate("NoticeDetail", { noticeId: notice.id })}
                 >
                   <Text style={styles.cardTitle}>{notice.title}</Text>
                   <Text style={styles.cardDate}>
@@ -448,7 +446,7 @@ const TeacherHomeScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => navigation.navigate("ViewTimeTable")}
+          onPress={() => navigation.navigate("TeacherViewTimetable")}
         >
           <MaterialIcons name="calendar-today" size={24} color="#FFFFFF" />
           <Text style={styles.menuButtonText}>Timetable</Text>
